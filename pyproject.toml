@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ppcopt"
+version = "0.1.0"
+description = "Amazon PPC optimizer: turns Amazon Ads search term reports into bid changes, negative keywords, and harvest keywords."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["openpyxl>=3.1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+ppcopt = "ppcopt.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ppcopt*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
