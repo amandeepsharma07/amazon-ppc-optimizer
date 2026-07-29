@@ -237,13 +237,65 @@
     cursor: pointer; text-decoration: underline; padding: 0;
   }
   .logout:hover { color: var(--ink); }
+
+  /* ---- admin panel ---- */
+  .admin { max-width: 780px; margin: 0 auto; padding: 28px 24px 64px; }
+  .admin[hidden] { display: none; }
+  .admin-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .admin-head h1 { font-size: 21px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .admin-head .sub { color: var(--muted); font-size: 13px; }
+  .admin section { margin-top: 18px; }
+  .admin h2 { font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+  .admin .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; }
+  .issue-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+  .issue-row .field { flex: 1 1 170px; }
+  .issue-row input[type="text"], .issue-row input[type="date"] {
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 7px; padding: 8px 10px; font: inherit; width: 100%;
+  }
+  .code-out { margin-top: 16px; padding: 14px 16px; border-radius: 9px; background: var(--surface-2); }
+  .code-out[hidden] { display: none; }
+  .code-out .code-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .code-value {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 16px; font-weight: 700; letter-spacing: 0.02em; word-break: break-all;
+  }
+  .issued-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .issued-table th, .issued-table td { padding: 9px 12px; text-align: left; white-space: nowrap; }
+  .issued-table th {
+    font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--muted); border-bottom: 1px solid var(--line);
+  }
+  .issued-table td { border-bottom: 1px solid var(--line); }
+  .issued-table td.code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .issued-empty { color: var(--muted); font-size: 13px; padding: 10px 2px; }
+  .link-btn {
+    background: none; border: 0; color: var(--crit); font: inherit; font-size: 13px;
+    cursor: pointer; text-decoration: underline; padding: 0;
+  }
+  .revoke-box {
+    margin-top: 12px; padding: 12px 14px; border-radius: 9px;
+    background: var(--surface-2); font-size: 12.5px; color: var(--muted);
+  }
+  .revoke-box[hidden] { display: none; }
+  .revoke-box code {
+    display: block; margin-top: 6px; padding: 8px 10px; border-radius: 6px;
+    background: var(--surface); color: var(--ink); word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+  }
+  .caveat {
+    margin-top: 24px; padding: 14px 16px; border-left: 3px solid var(--warn);
+    background: var(--warn-bg); border-radius: 0 9px 9px 0; font-size: 13px; line-height: 1.5;
+  }
+  .caveat strong { color: var(--ink); }
 </style>
 
 <div class="gate" id="gate">
   <form class="card gate-card" id="gate-form" autocomplete="on">
     <h1>PPC Optimizer Dashboard</h1>
     <p class="gate-sub">Enter the password to continue.</p>
-    <label for="gate-pw">Password</label>
+    <label for="gate-pw">Password or access code</label>
     <input type="password" id="gate-pw" autocomplete="current-password" autofocus>
     <label class="gate-remember">
       <input type="checkbox" id="gate-remember" checked>
@@ -253,8 +305,67 @@
     <p class="gate-error" id="gate-error" role="alert"></p>
     <p class="gate-foot">
       This gate keeps the link private, not your data — nothing you upload ever leaves your browser.
+      <br><button type="button" class="logout" id="admin-link">Admin</button>
     </p>
   </form>
+</div>
+
+<div class="admin" id="admin" hidden>
+  <div class="admin-head">
+    <div>
+      <h1>Access admin</h1>
+      <span class="sub">Issue a dated code per person, then send it to them.</span>
+    </div>
+    <button type="button" class="logout" id="admin-exit">Back to sign in</button>
+  </div>
+
+  <section class="card">
+    <h2>Grant access</h2>
+    <p class="hint">
+      They enter this code on the sign-in screen instead of the password. It stops working
+      by itself on the expiry date, so access lapses without you having to do anything.
+    </p>
+    <form class="issue-row" id="issue-form">
+      <div class="field">
+        <label for="issue-name">Who is it for</label>
+        <input type="text" id="issue-name" placeholder="e.g. Priya" required>
+      </div>
+      <div class="field">
+        <label for="issue-expiry">Works until</label>
+        <input type="date" id="issue-expiry" required>
+      </div>
+      <button type="submit" class="btn-primary" style="flex:0 0 auto;width:auto">Generate code</button>
+    </form>
+    <p class="gate-error" id="issue-error" role="alert"></p>
+
+    <div class="code-out" id="code-out" hidden>
+      <div class="code-label">Send this code to <span id="code-for"></span> — it works until <span id="code-until"></span></div>
+      <div class="code-value">
+        <span id="code-text"></span>
+        <button type="button" class="btn-ghost" id="code-copy">Copy</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Codes you've issued</h2>
+    <p class="hint">Kept in this browser as your own record. Clearing it doesn't affect anyone's access.</p>
+    <div id="issued-wrap"></div>
+    <div class="revoke-box" id="revoke-box" hidden>
+      <strong>To actually cut off a code before it expires</strong>, paste the line below into
+      <code>dashboard/index.html</code>, replacing the existing <code>const REVOKED</code> line,
+      then re-save the file (and re-upload it wherever you host it).
+      <code id="revoke-line"></code>
+    </div>
+  </section>
+
+  <div class="caveat">
+    <strong>What this can and can't do.</strong> Codes are checked in the visitor's browser, so
+    someone who reads the page source can work around them. This is a practical lock for
+    colleagues and clients, not security against a determined person. Nothing sensitive sits
+    behind it — reports are read in memory and never sent anywhere. Real accounts you can revoke
+    instantly need a server.
+  </div>
 </div>
 
 <div class="app" id="app" hidden>
@@ -1194,7 +1305,21 @@ function analyze() {
    It keeps a shared link private; it is not protection for secrets. Nothing
    you upload is stored behind it — files are read in memory and never sent. */
 const PASSWORD_HASH = "1704386914b4b6bb83ead303d77c28d36dd2153015a2255af13e32ef25df3150";
+
+/* Admin password, hashed the same way but with an "admin:" salt.
+   Change it with newAdminHash("your new admin password") in the console. */
+const ADMIN_HASH = "63f9f916337358fcf3f9ac12c49b717c40bb25b4c6fd54cb4f5dd7c6768057d4";
+
+/* Signing key for access codes. Anyone holding this can mint codes, so change
+   it if you ever hand the file to someone who shouldn't issue access. Changing
+   it invalidates every code already issued. */
+const ACCESS_SECRET = "b77f3dfb3b800bbafba8e80f62c4de22e7daa6ef97e0e9f6";
+
+/* Signatures of codes cut off early. The admin panel writes this line for you. */
+const REVOKED = [];
+
 const GATE_KEY = "ppcopt.unlocked";
+const ISSUED_KEY = "ppcopt.issued";
 
 async function hashPassword(pw) {
   const bytes = new TextEncoder().encode("ppcopt:" + pw);
@@ -1206,12 +1331,73 @@ window.newPasswordHash = async pw => {
   console.log("Paste this as PASSWORD_HASH:\n" + h);
   return h;
 };
+window.newAdminHash = async pw => {
+  const bytes = new TextEncoder().encode("ppcopt:admin:" + pw);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const h = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+  console.log("Paste this as ADMIN_HASH:\n" + h);
+  return h;
+};
+
+/* ---------------- access codes ----------------
+   A code is  name-YYMMDD-signature  where the signature is an HMAC of the
+   name and expiry under ACCESS_SECRET. Because the signature can only be
+   produced with the secret, a code can be checked offline without storing
+   any list of users — which is what lets this work with no server. */
+
+function slugName(name) {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 12);
+}
+function compactDate(iso) { return iso.replace(/-/g, "").slice(2); } // 2026-08-31 -> 260831
+function expandDate(compact) {
+  return `20${compact.slice(0, 2)}-${compact.slice(2, 4)}-${compact.slice(4, 6)}`;
+}
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+async function signAccess(slug, compact) {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(ACCESS_SECRET),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${slug}|${compact}`));
+  return [...new Uint8Array(mac)].slice(0, 4).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function makeAccessCode(name, expiryIso) {
+  const slug = slugName(name);
+  const compact = compactDate(expiryIso);
+  return `${slug}-${compact}-${await signAccess(slug, compact)}`;
+}
+
+/** Returns {ok:true, name, expiry} or {ok:false, reason}. */
+async function checkAccessCode(raw) {
+  const code = raw.trim().toLowerCase();
+  const parts = code.split("-");
+  if (parts.length !== 3) return { ok: false, reason: "format" };
+  const [slug, compact, sig] = parts;
+  if (!/^\d{6}$/.test(compact)) return { ok: false, reason: "format" };
+  if (await signAccess(slug, compact) !== sig) return { ok: false, reason: "bad" };
+  if (REVOKED.includes(sig)) return { ok: false, reason: "revoked" };
+  const expiry = expandDate(compact);
+  if (expiry < todayIso()) return { ok: false, reason: "expired", expiry };
+  return { ok: true, name: slug, expiry };
+}
 
 let dashboardStarted = false;
 function openDashboard() {
   document.getElementById("gate").hidden = true;
   document.getElementById("app").hidden = false;
   if (!dashboardStarted) { dashboardStarted = true; init(); }
+}
+
+function readStore(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+function writeStore(key, value) {
+  try { localStorage.setItem(key, value); } catch (e) { /* private mode */ }
 }
 
 function initGate() {
@@ -1225,31 +1411,175 @@ function initGate() {
     location.reload();
   });
 
+  document.getElementById("admin-link").addEventListener("click", async () => {
+    err.textContent = "";
+    const typed = pwInput.value;
+    if (!typed) {
+      err.textContent = "Type the admin password above, then click Admin.";
+      pwInput.focus();
+      return;
+    }
+    const bytes = new TextEncoder().encode("ppcopt:admin:" + typed);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const hash = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+    if (hash !== ADMIN_HASH) {
+      err.textContent = "That isn't the admin password.";
+      pwInput.select();
+      return;
+    }
+    pwInput.value = "";
+    document.getElementById("gate").hidden = true;
+    document.getElementById("admin").hidden = false;
+  });
+
   form.addEventListener("submit", async e => {
     e.preventDefault();
     err.textContent = "";
+    const typed = pwInput.value;
+
     let hash;
     try {
-      hash = await hashPassword(pwInput.value);
+      hash = await hashPassword(typed);
     } catch (e) {
       err.textContent = "This browser can't check the password. Try Chrome or Edge.";
       return;
     }
-    if (hash !== PASSWORD_HASH) {
-      err.textContent = "That password isn't right. Try again.";
-      pwInput.select();
+    if (hash === PASSWORD_HASH) {
+      if (remember.checked) writeStore(GATE_KEY, hash);
+      openDashboard();
       return;
     }
-    if (remember.checked) {
-      try { localStorage.setItem(GATE_KEY, hash); } catch (e) { /* private mode */ }
+
+    const check = await checkAccessCode(typed);
+    if (check.ok) {
+      if (remember.checked) writeStore(GATE_KEY, "code:" + typed.trim().toLowerCase());
+      openDashboard();
+      return;
     }
-    openDashboard();
+    if (check.reason === "expired") {
+      err.textContent = `That code expired on ${check.expiry}. Ask for a new one.`;
+    } else if (check.reason === "revoked") {
+      err.textContent = "That code has been cancelled.";
+    } else {
+      err.textContent = "That password or code isn't right. Try again.";
+    }
+    pwInput.select();
   });
 
-  let stored = null;
-  try { stored = localStorage.getItem(GATE_KEY); } catch (e) { /* private mode */ }
-  if (stored === PASSWORD_HASH) openDashboard();
+  const stored = readStore(GATE_KEY);
+  if (stored === PASSWORD_HASH) {
+    openDashboard();
+  } else if (stored && stored.startsWith("code:")) {
+    // Re-check every load so an expired or cancelled code stops working
+    // even on a device that ticked "keep me signed in".
+    checkAccessCode(stored.slice(5)).then(res => {
+      if (res.ok) openDashboard();
+      else try { localStorage.removeItem(GATE_KEY); } catch (e) { /* private mode */ }
+    });
+  }
+}
+
+/* ---------------- admin panel ---------------- */
+function loadIssued() {
+  try { return JSON.parse(readStore(ISSUED_KEY) || "[]"); } catch (e) { return []; }
+}
+function saveIssued(list) { writeStore(ISSUED_KEY, JSON.stringify(list)); }
+
+function renderIssued() {
+  const wrap = document.getElementById("issued-wrap");
+  const list = loadIssued();
+  if (!list.length) {
+    wrap.innerHTML = `<p class="issued-empty">No codes issued yet.</p>`;
+    return;
+  }
+  const today = todayIso();
+  wrap.innerHTML = `<table class="issued-table">
+    <thead><tr><th>Person</th><th>Code</th><th>Works until</th><th>Status</th><th></th></tr></thead>
+    <tbody>${list.map((it, i) => {
+      const sig = it.code.split("-")[2];
+      const revoked = REVOKED.includes(sig);
+      const expired = it.expiry < today;
+      const status = revoked ? `<span class="chip crit">cancelled</span>`
+        : expired ? `<span class="chip flat">expired</span>`
+        : `<span class="chip good">active</span>`;
+      return `<tr>
+        <td>${esc(it.name)}</td>
+        <td class="code">${esc(it.code)}</td>
+        <td>${esc(it.expiry)}</td>
+        <td>${status}</td>
+        <td><button type="button" class="link-btn" data-revoke="${i}">${revoked ? "Remove" : "Cancel"}</button></td>
+      </tr>`;
+    }).join("")}</tbody></table>`;
+
+  wrap.querySelectorAll("[data-revoke]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const item = loadIssued()[+btn.dataset.revoke];
+      if (!item) return;
+      const sig = item.code.split("-")[2];
+      const box = document.getElementById("revoke-box");
+      const sigs = [...new Set([...REVOKED, sig])];
+      document.getElementById("revoke-line").textContent =
+        `const REVOKED = [${sigs.map(s => `"${s}"`).join(", ")}];`;
+      box.hidden = false;
+      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  });
+}
+
+function initAdmin() {
+  const form = document.getElementById("issue-form");
+  const nameInput = document.getElementById("issue-name");
+  const expiryInput = document.getElementById("issue-expiry");
+  const err = document.getElementById("issue-error");
+
+  const in90 = new Date(Date.now() + 90 * 864e5);
+  expiryInput.value = `${in90.getFullYear()}-${String(in90.getMonth() + 1).padStart(2, "0")}-${String(in90.getDate()).padStart(2, "0")}`;
+  expiryInput.min = todayIso();
+
+  document.getElementById("admin-exit").addEventListener("click", () => {
+    document.getElementById("admin").hidden = true;
+    document.getElementById("gate").hidden = false;
+  });
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    err.textContent = "";
+    const name = nameInput.value.trim();
+    if (slugName(name).length < 2) {
+      err.textContent = "Give the person a name of at least two letters or digits.";
+      return;
+    }
+    if (expiryInput.value < todayIso()) {
+      err.textContent = "Pick an expiry date in the future.";
+      return;
+    }
+    const code = await makeAccessCode(name, expiryInput.value);
+    document.getElementById("code-for").textContent = name;
+    document.getElementById("code-until").textContent = expiryInput.value;
+    document.getElementById("code-text").textContent = code;
+    document.getElementById("code-out").hidden = false;
+
+    const list = loadIssued().filter(it => it.code !== code);
+    list.unshift({ name, code, expiry: expiryInput.value, issued: todayIso() });
+    saveIssued(list);
+    renderIssued();
+    nameInput.value = "";
+  });
+
+  document.getElementById("code-copy").addEventListener("click", async () => {
+    const btn = document.getElementById("code-copy");
+    try {
+      await navigator.clipboard.writeText(document.getElementById("code-text").textContent);
+      btn.textContent = "Copied";
+      setTimeout(() => { btn.textContent = "Copy"; }, 1600);
+    } catch (e) {
+      btn.textContent = "Select it manually";
+    }
+  });
+
+  renderIssued();
 }
 
 initGate();
+initAdmin();
 </script>
