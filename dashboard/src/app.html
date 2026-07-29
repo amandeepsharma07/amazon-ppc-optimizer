@@ -202,14 +202,70 @@
   .tooltip .tt-row span:first-child { color: var(--muted); }
 
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  /* ---- login gate ---- */
+  .gate {
+    position: fixed; inset: 0; z-index: 50; background: var(--ground);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .gate[hidden] { display: none; }
+  .gate-card { width: 100%; max-width: 380px; padding: 28px; text-align: left; }
+  .gate-card h1 { font-size: 19px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .gate-card .gate-sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .gate-card label {
+    display: block; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .gate-card input[type="password"] {
+    width: 100%; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 7px; padding: 10px 12px; font: inherit;
+  }
+  /* Overrides the uppercase treatment .gate-card label gives field labels. */
+  .gate-card label.gate-remember {
+    display: flex; align-items: center; gap: 8px; margin: 14px 0 18px;
+    font-size: 13px; font-weight: 400; color: var(--muted);
+    text-transform: none; letter-spacing: normal;
+  }
+  .gate-remember input { accent-color: var(--accent); }
+  .gate-card button { width: 100%; }
+  .gate-error {
+    color: var(--crit); font-size: 13px; font-weight: 600; margin: 12px 0 0; min-height: 19px;
+  }
+  .gate-foot { color: var(--muted); font-size: 12px; margin: 18px 0 0; line-height: 1.45; }
+  .logout {
+    background: none; border: 0; color: var(--muted); font: inherit; font-size: 12.5px;
+    cursor: pointer; text-decoration: underline; padding: 0;
+  }
+  .logout:hover { color: var(--ink); }
 </style>
 
-<div class="app">
+<div class="gate" id="gate">
+  <form class="card gate-card" id="gate-form" autocomplete="on">
+    <h1>PPC Optimizer Dashboard</h1>
+    <p class="gate-sub">Enter the password to continue.</p>
+    <label for="gate-pw">Password</label>
+    <input type="password" id="gate-pw" autocomplete="current-password" autofocus>
+    <label class="gate-remember">
+      <input type="checkbox" id="gate-remember" checked>
+      Keep me signed in on this device
+    </label>
+    <button type="submit" class="btn-primary">Open dashboard</button>
+    <p class="gate-error" id="gate-error" role="alert"></p>
+    <p class="gate-foot">
+      This gate keeps the link private, not your data — nothing you upload ever leaves your browser.
+    </p>
+  </form>
+</div>
+
+<div class="app" id="app" hidden>
   <header class="masthead">
     <h1>PPC Optimizer Dashboard</h1>
     <span class="sub">Bulk sheet + search term report &rarr; bid changes, negatives &amp; harvest keywords</span>
   </header>
-  <p class="privacy">Everything runs in your browser — your ad data is never uploaded anywhere.</p>
+  <p class="privacy">
+    Everything runs in your browser — your ad data is never uploaded anywhere.
+    <button type="button" class="logout" id="logout">Sign out</button>
+  </p>
 
   <section class="card controls" aria-label="Setup">
     <div class="controls-row">
@@ -1127,5 +1183,73 @@ function analyze() {
   }
 }
 
-init();
+/* ---------------- login gate ----------------
+   The password is stored only as a salted SHA-256 hash, so it isn't readable
+   in this file. To change it: open the page, press F12 for the console, run
+     newPasswordHash("your new password")
+   and paste the printed value over PASSWORD_HASH below.
+
+   Be clear-eyed about what this is. Everything here runs in the visitor's
+   browser, so a determined person can read this file and walk past the gate.
+   It keeps a shared link private; it is not protection for secrets. Nothing
+   you upload is stored behind it — files are read in memory and never sent. */
+const PASSWORD_HASH = "1704386914b4b6bb83ead303d77c28d36dd2153015a2255af13e32ef25df3150";
+const GATE_KEY = "ppcopt.unlocked";
+
+async function hashPassword(pw) {
+  const bytes = new TextEncoder().encode("ppcopt:" + pw);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+window.newPasswordHash = async pw => {
+  const h = await hashPassword(pw);
+  console.log("Paste this as PASSWORD_HASH:\n" + h);
+  return h;
+};
+
+let dashboardStarted = false;
+function openDashboard() {
+  document.getElementById("gate").hidden = true;
+  document.getElementById("app").hidden = false;
+  if (!dashboardStarted) { dashboardStarted = true; init(); }
+}
+
+function initGate() {
+  const form = document.getElementById("gate-form");
+  const pwInput = document.getElementById("gate-pw");
+  const err = document.getElementById("gate-error");
+  const remember = document.getElementById("gate-remember");
+
+  document.getElementById("logout").addEventListener("click", () => {
+    try { localStorage.removeItem(GATE_KEY); } catch (e) { /* private mode */ }
+    location.reload();
+  });
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    err.textContent = "";
+    let hash;
+    try {
+      hash = await hashPassword(pwInput.value);
+    } catch (e) {
+      err.textContent = "This browser can't check the password. Try Chrome or Edge.";
+      return;
+    }
+    if (hash !== PASSWORD_HASH) {
+      err.textContent = "That password isn't right. Try again.";
+      pwInput.select();
+      return;
+    }
+    if (remember.checked) {
+      try { localStorage.setItem(GATE_KEY, hash); } catch (e) { /* private mode */ }
+    }
+    openDashboard();
+  });
+
+  let stored = null;
+  try { stored = localStorage.getItem(GATE_KEY); } catch (e) { /* private mode */ }
+  if (stored === PASSWORD_HASH) openDashboard();
+}
+
+initGate();
 </script>
