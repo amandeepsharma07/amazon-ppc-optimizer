@@ -1,11 +1,26 @@
 import { NextResponse } from "next/server";
 import { createSession, setSessionCookie, verifyPassword } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
+import { setupState } from "@/lib/setup";
 
 export async function POST(request: Request) {
   const { email, password } = await request.json().catch(() => ({}));
   if (typeof email !== "string" || typeof password !== "string") {
     return NextResponse.json({ error: "Enter your email and password." }, { status: 400 });
+  }
+
+  const state = await setupState();
+  if (state.state === "no-database") {
+    return NextResponse.json(
+      { error: "The database isn't connected yet — check DATABASE_URL in your hosting settings.", setup: "/setup" },
+      { status: 503 }
+    );
+  }
+  if (state.state === "needs-admin") {
+    return NextResponse.json(
+      { error: "No accounts exist yet. Create the first one.", setup: "/setup" },
+      { status: 409 }
+    );
   }
 
   const user = await queryOne<{ id: string; password_hash: string; is_active: boolean }>(

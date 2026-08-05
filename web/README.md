@@ -20,35 +20,56 @@ themselves in.
 
 ## Deploying
 
-You need two things: somewhere to run it (Vercel) and a Postgres database
-(Neon has a free tier and is the least setup).
+The app **sets itself up**: it creates its own tables, and the first time you
+open it, it asks you to create the admin account in the browser. There is no
+setup command to remember and no way to end up with a live site nobody can sign
+in to.
 
-### 1. Create the database
+You only ever have to supply one thing: a `DATABASE_URL` pointing at a Postgres
+database.
 
-1. Sign up at **neon.tech** and create a project
-2. Copy the connection string it shows — it looks like
-   `postgres://user:pass@ep-xxx.aws.neon.tech/neondb?sslmode=require`
+### Easiest — Render (app and database together)
 
-### 2. Deploy to Vercel
+Render can create both from `render.yaml` in this repository, so there is no
+separate database signup and no connection string to copy.
 
-1. At **vercel.com**, choose **Add New → Project** and import
-   `amandeepsharma07/amazon-ppc-optimizer`
-2. Set **Root Directory** to `web` — this matters, the repo also holds the CLI
-   and the standalone dashboard
-3. Add these environment variables:
+1. At **render.com**, choose **New → Blueprint**
+2. Point it at `amandeepsharma07/amazon-ppc-optimizer`
+3. Click **Apply**
+
+Open the URL it gives you and create your admin account. Note Render's free
+database is time-limited; a paid instance is a few dollars a month.
+
+### Vercel (needs a database from elsewhere)
+
+Vercel doesn't host Postgres itself, so this is two steps rather than one.
+
+1. Create a database at **neon.tech** and copy the connection string
+   (`postgres://user:pass@ep-xxx.neon.tech/neondb?sslmode=require`)
+2. At **vercel.com**: **Add New → Project**, import this repository, and
+   **set Root Directory to `web`** — the repo also holds the CLI and the
+   standalone dashboard, so this step is required
+3. Add two environment variables:
 
    | Name | Value |
    |---|---|
-   | `DATABASE_URL` | the Neon connection string from step 1 |
+   | `DATABASE_URL` | the Neon connection string |
    | `SESSION_SECRET` | any long random string |
-   | `ADMIN_EMAIL` | the email you want to sign in with |
-   | `ADMIN_PASSWORD` | your first password — at least 10 characters with a letter and a number |
 
-4. Deploy
+4. Deploy, open the URL, create your admin account
 
-### 3. Create the tables and your admin account
+If the site loads but you can't sign in, open `/setup` — it will say exactly
+what is missing, including the database error if there is one.
 
-Run once, from a terminal on your own machine, with the same `DATABASE_URL`:
+### Railway
+
+**New Project → Deploy from GitHub**, set the root directory to `web`, then
+**New → Database → PostgreSQL**. Railway injects `DATABASE_URL` for you; add a
+`SESSION_SECRET` of your own.
+
+### Optional: create the admin from the command line instead
+
+Not required — the browser flow covers it — but useful for scripted installs:
 
 ```bash
 cd web
@@ -56,19 +77,13 @@ npm install
 DATABASE_URL="postgres://…" ADMIN_EMAIL="you@example.com" ADMIN_PASSWORD="…" npm run db:init
 ```
 
-It prints `Tables ready.` and `Created admin …`. It's safe to run again later —
-existing accounts keep their passwords.
-
-Then open your Vercel URL and sign in.
-
 ## Running it locally
 
 ```bash
 cd web
 npm install
-cp .env.example .env.local     # fill in DATABASE_URL and the admin details
-npm run db:init
-npm run dev                    # http://localhost:3000
+cp .env.example .env.local     # only DATABASE_URL and SESSION_SECRET are needed
+npm run dev                    # http://localhost:3000, then create your admin
 ```
 
 Any Postgres works locally:

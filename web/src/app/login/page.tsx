@@ -22,6 +22,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data.setup) { router.replace(data.setup); return; }
         setError(data.error ?? "Could not sign in.");
         setBusy(false);
         return;

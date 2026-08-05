@@ -1,9 +1,14 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
+import { setupState } from "@/lib/setup";
 import TopBar from "@/components/TopBar";
 import Analyzer from "@/components/Analyzer";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
+  const state = await setupState();
+  if (state.state !== "ready") redirect("/setup");
   const user = await currentUser();
   if (!user) redirect("/login");
 
