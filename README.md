@@ -1,6 +1,6 @@
 # Amazon PPC Optimizer
 
-Two tools, one goal: turn the reports you download from Amazon Ads into concrete
+Three ways to use one engine: turn the reports you download from Amazon Ads into concrete
 optimization actions — no API credentials required.
 
 1. **Web app** (`web/`) — the full version: real accounts an admin creates and revokes,
