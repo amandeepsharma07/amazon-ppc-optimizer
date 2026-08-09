@@ -1,0 +1,265 @@
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+import { MARKETPLACES, type Marketplace, type SearchTermRow } from "@/lib/analyze";
+import { ingestWorkbook } from "@/lib/parse";
+import {
+  buildBackendKeywords, byteLimitFor, type BackendKeywordResult,
+} from "@/lib/backend-keywords";
+
+export default function BackendKeywords() {
+  const [marketplace, setMarketplace] = useState<Marketplace>(MARKETPLACES[0]);
+  const [productType, setProductType] = useState("");
+  const [brand, setBrand] = useState("");
+  const [title, setTitle] = useState("");
+  const [competitorBrands, setCompetitorBrands] = useState("");
+  const [customLimit, setCustomLimit] = useState<number | "">("");
+  const [rows, setRows] = useState<SearchTermRow[] | null>(null);
+  const [fileNote, setFileNote] = useState("");
+  const [status, setStatus] = useState("Upload a search term report to begin.");
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<BackendKeywordResult | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [showExcluded, setShowExcluded] = useState(false);
+
+  const defaultLimit = byteLimitFor(marketplace.code);
+
+  const handleFile = useCallback(async (file: File) => {
+    setError("");
+    setStatus(`Reading ${file.name}…`);
+    try {
+      const found = ingestWorkbook(await file.arrayBuffer(), file.name);
+      if (!found.searchTerms) {
+        throw new Error(
+          `No search term data in "${file.name}". This needs a search term report, ` +
+          "or a bulk file that includes one."
+        );
+      }
+      setRows(found.searchTerms);
+      setFileNote(`${file.name} — ${found.searchTerms.length.toLocaleString()} search terms`);
+      setStatus("Ready — fill in your product details and generate.");
+    } catch (err) {
+      setRows(null);
+      setFileNote("");
+      setError(err instanceof Error ? err.message : String(err));
+      setStatus("Upload a search term report to begin.");
+    }
+  }, []);
+
+  const canGenerate = Boolean(rows && productType.trim());
+
+  function generate() {
+    if (!rows) return;
+    setError("");
+    setCopied(false);
+    const res = buildBackendKeywords(rows, {
+      marketplace, title, brand, productType, competitorBrands,
+      byteLimit: customLimit === "" ? undefined : Number(customLimit),
+    });
+    setResult(res);
+    setStatus(
+      `Built from ${res.sourceTerms.toLocaleString()} unique customer searches ` +
+      `(${res.sourceWords.toLocaleString()} distinct words considered).`
+    );
+  }
+
+  async function copy() {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.searchTerms);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setError("Couldn't reach the clipboard — select the text below and copy it manually.");
+    }
+  }
+
+  const fillPct = useMemo(
+    () => (result ? Math.min(100, (result.bytes / result.byteLimit) * 100) : 0),
+    [result]
+  );
+
+  return (
+    <>
+      <section className="card" style={{ display: "grid", gap: 16 }}>
+        <div>
+          <h2 className="section">1. Your search term report</h2>
+          <p className="hint">
+            The words come from what shoppers actually typed, ranked by what converted —
+            not guesswork. Read in this browser; nothing is uploaded.
+          </p>
+          <input type="file" accept=".xlsx,.xlsm,.csv,.tsv"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+          {fileNote && (
+            <p style={{ color: "var(--good)", fontSize: 12.5, fontWeight: 600, margin: "6px 0 0" }}>
+              {fileNote}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <h2 className="section">2. Your product</h2>
+          <p className="hint">
+            Anything already on your listing is dropped, because Amazon indexes your title and
+            brand anyway — repeating them here spends bytes twice and buys nothing.
+          </p>
+          <div className="row">
+            <div>
+              <label className="field-label" htmlFor="bk-market">Marketplace</label>
+              <select id="bk-market" value={marketplace.code}
+                onChange={e => setMarketplace(MARKETPLACES.find(m => m.code === e.target.value)!)}>
+                {MARKETPLACES.map(m => <option key={m.code} value={m.code}>{m.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="field-label" htmlFor="bk-type">Product type *</label>
+              <input id="bk-type" type="text" value={productType} placeholder="e.g. school backpack"
+                onChange={e => setProductType(e.target.value)} />
+            </div>
+            <div>
+              <label className="field-label" htmlFor="bk-brand">Your brand</label>
+              <input id="bk-brand" type="text" value={brand} placeholder="e.g. Packster"
+                onChange={e => setBrand(e.target.value)} />
+            </div>
+          </div>
+          <div className="row" style={{ marginTop: 12 }}>
+            <div style={{ flex: "1 1 100%" }}>
+              <label className="field-label" htmlFor="bk-title">Listing title</label>
+              <input id="bk-title" type="text" value={title}
+                placeholder="Paste your full product title — every word in it is skipped"
+                onChange={e => setTitle(e.target.value)} />
+            </div>
+          </div>
+          <div className="row" style={{ marginTop: 12 }}>
+            <div>
+              <label className="field-label" htmlFor="bk-comp">Competitor brands to avoid</label>
+              <input id="bk-comp" type="text" value={competitorBrands}
+                placeholder="e.g. Skybags, Wildcraft"
+                onChange={e => setCompetitorBrands(e.target.value)} />
+            </div>
+            <div>
+              <label className="field-label" htmlFor="bk-limit">
+                Byte limit (default {defaultLimit} for {marketplace.code})
+              </label>
+              <input id="bk-limit" type="number" min={20} max={2000} value={customLimit}
+                placeholder={String(defaultLimit)}
+                onChange={e => setCustomLimit(e.target.value === "" ? "" : Number(e.target.value))} />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+          <button className="btn" onClick={generate} disabled={!canGenerate}>
+            Generate search terms
+          </button>
+          <span style={{ color: "var(--muted)", fontSize: 13.5 }}>{status}</span>
+        </div>
+        {error && <p className="error-msg" role="alert">{error}</p>}
+      </section>
+
+      {result && (
+        <>
+          <section className="card" style={{ marginTop: 18 }}>
+            <h2 className="section">Paste this into Seller Central</h2>
+            <p className="hint">
+              Inventory → Manage Inventory → Edit → Keywords → <strong>Search Terms</strong>.
+              One field, no commas.
+            </p>
+            <textarea readOnly value={result.searchTerms} rows={4} className="terms-out"
+              onFocus={e => e.currentTarget.select()} />
+            <div className="byte-row">
+              <div className="byte-bar" aria-hidden="true">
+                <div className="byte-fill" style={{ width: `${fillPct}%` }} />
+              </div>
+              <span className="byte-count">
+                <strong>{result.bytes}</strong> / {result.byteLimit} bytes
+                {result.bytesFree > 0 && <span className="byte-free"> · {result.bytesFree} free</span>}
+              </span>
+              <button className="btn-ghost" onClick={copy}>{copied ? "Copied" : "Copy"}</button>
+            </div>
+            <p className="hint" style={{ margin: "12px 0 0" }}>
+              {result.included.length} words from {result.sourceTerms.toLocaleString()} customer
+              searches. Word order doesn&apos;t matter — Amazon matches any combination.
+            </p>
+          </section>
+
+          {result.needsReview.length > 0 && (
+            <div className="caveat-box" style={{ marginTop: 18 }}>
+              <strong>Check these {result.needsReview.length} before you paste:</strong>{" "}
+              {result.needsReview.map(w => w.word).join(", ")}.
+              <br />
+              Each is both an ordinary word and a well-known brand. Keep it if it honestly
+              describes your product; remove it if shoppers searching it want someone else&apos;s
+              product — that&apos;s trademark use, and Amazon suppresses listings for it. To drop
+              one, add it to the competitor field above and generate again.
+            </div>
+          )}
+
+          <section style={{ marginTop: 18 }}>
+            <h2 className="section">What went in, and why</h2>
+            <p className="hint">Highest-value words first. Orders count for far more than clicks.</p>
+            <div className="table-wrap">
+              <table>
+                <thead><tr>
+                  <th>Word</th><th className="num">Orders</th><th className="num">Clicks</th>
+                  <th className="num">Searches</th><th className="num">Bytes</th>
+                </tr></thead>
+                <tbody>
+                  {result.included.map(w => (
+                    <tr key={w.word}>
+                      <td>
+                        <strong>{w.word}</strong>
+                        {w.review && <span className="chip warn" style={{ marginLeft: 8 }}>check</span>}
+                      </td>
+                      <td className="num">{w.orders}</td>
+                      <td className="num">{w.clicks}</td>
+                      <td className="num">{w.termCount}</td>
+                      <td className="num">{w.bytes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section style={{ marginTop: 18 }}>
+            <h2 className="section">
+              Left out ({result.excluded.length + result.droppedForSpace.length})
+            </h2>
+            <p className="hint">
+              Every word that didn&apos;t make it, with the reason. Worth a look — it shows which
+              policy rules your search data runs into.
+            </p>
+            <button className="btn-ghost" onClick={() => setShowExcluded(v => !v)}>
+              {showExcluded ? "Hide" : "Show"} the list
+            </button>
+            {showExcluded && (
+              <div className="table-wrap" style={{ marginTop: 12 }}>
+                <table>
+                  <thead><tr><th>Word</th><th>Why it was left out</th></tr></thead>
+                  <tbody>
+                    {[...result.excluded, ...result.droppedForSpace].map(w => (
+                      <tr key={w.word + w.reason}>
+                        <td>{w.word}</td>
+                        <td style={{ whiteSpace: "normal", color: "var(--muted)" }}>{w.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <div className="caveat-box">
+            <strong>Check the byte limit against your own listing.</strong> Amazon has changed the
+            size of this field before and a few categories differ. Open the Search Terms box in
+            Seller Central and confirm it accepts what you paste. The rules applied here — no
+            commas, no repetition, no competitor brands, no subjective or temporary claims, nothing
+            already in your title — are Amazon&apos;s published guidance, but policy is Amazon&apos;s to
+            change, so treat this as a well-informed draft rather than a guarantee.
+          </div>
+        </>
+      )}
+    </>
+  );
+}

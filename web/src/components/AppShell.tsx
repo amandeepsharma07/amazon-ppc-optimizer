@@ -18,6 +18,12 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M10 6v4l3 2" />
     </svg>
   ),
+  keywords: (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M12.5 3.5a4 4 0 1 0-3.2 6.4L4 15.2V17h1.8l1-1h1.4v-1.4h1.4l1.3-1.3a4 4 0 0 0 1.6-9.8z" />
+      <circle cx="13.4" cy="6.6" r=".9" />
+    </svg>
+  ),
   team: (
     <svg viewBox="0 0 20 20" aria-hidden="true">
       <circle cx="7.5" cy="7" r="3" />
@@ -53,6 +59,7 @@ export default function AppShell({
 
   const items = [
     { href: "/", icon: "analyze", label: "Analyze", hint: "Upload reports" },
+    { href: "/backend-keywords", icon: "keywords", label: "Backend keywords", hint: "Search Terms field" },
     { href: "/history", icon: "history", label: "History", hint: "Past runs" },
     ...(user.role === "admin"
       ? [{ href: "/admin", icon: "team", label: "Team", hint: "Who has access" }]

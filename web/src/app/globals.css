@@ -193,3 +193,23 @@ td.ell { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
 .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
 .row > * { flex: 1 1 170px; }
 .row > .narrow { flex: 0 0 auto; }
+
+/* ---- backend keyword output ---- */
+.terms-out {
+  width: 100%; background: var(--surface-2); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13.5px; line-height: 1.6; resize: vertical;
+}
+.byte-row { display: flex; align-items: center; gap: 14px; margin-top: 12px; flex-wrap: wrap; }
+.byte-bar {
+  flex: 1 1 180px; height: 8px; border-radius: 99px;
+  background: var(--surface-2); overflow: hidden; min-width: 120px;
+}
+.byte-fill { height: 100%; background: var(--accent); border-radius: 99px; }
+.byte-count { font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.byte-free { color: var(--muted); }
+.caveat-box {
+  margin-top: 22px; padding: 14px 16px; border-left: 3px solid var(--warn);
+  background: var(--warn-bg); border-radius: 0 9px 9px 0; font-size: 13px; line-height: 1.55;
+}
