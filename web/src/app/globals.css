@@ -247,3 +247,9 @@ td.ell { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
   border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px;
   font: inherit; resize: vertical; line-height: 1.5;
 }
+
+.auto-tag {
+  margin-left: 7px; padding: 1px 7px; border-radius: 99px;
+  background: var(--good-bg); color: var(--good);
+  font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: none;
+}

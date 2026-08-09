@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { MARKETPLACES, type SearchTermRow } from "../src/lib/analyze.ts";
 import {
-  buildBackendKeywords, byteLength, byteLimitFor, campaignsInReport,
+  buildBackendKeywords, byteLength, byteLimitFor, campaignsInReport, detectBrands, detectOffTopic,
 } from "../src/lib/backend-keywords.ts";
 
 const IN = MARKETPLACES.find(m => m.code === "IN")!;
@@ -231,4 +231,36 @@ test("words from the description are not repeated in the field", () => {
   assert.ok(!words.includes("waterproof"), "already in the description");
   assert.ok(!words.includes("padded"), "already in the description");
   assert.ok(words.includes("ergonomic") && words.includes("rucksack"));
+});
+
+test("known brands present in a report are detected", () => {
+  const rows = [
+    term("skybags rucksack"), term("nike bag"), term("plain cotton tote"),
+  ];
+  const found = detectBrands(rows);
+  assert.ok(found.includes("skybag"), "trademarked brand detected");
+  assert.ok(found.includes("nike"), "brand-ambiguous name detected");
+  assert.ok(!found.includes("tote"), "ordinary words are not brands");
+});
+
+test("words belonging to another product are detected as off-topic", () => {
+  const rows = [
+    // the product being worked on
+    ...Array.from({ length: 6 }, () => term("school bag kids", { campaign: "School", clicks: 30 })),
+    term("school bag laptop compartment", { campaign: "School", clicks: 2 }),
+    // a different product's campaign
+    ...Array.from({ length: 6 }, () => term("laptop sleeve 15 inch", { campaign: "Sleeve", clicks: 40 })),
+  ];
+  const off = detectOffTopic(rows, new Set(["School"]));
+  assert.ok(off.includes("laptop"), "laptop is overwhelmingly from the other campaign");
+  // "sleeve" never appears under School at all, so the campaign filter has
+  // already removed it — re-suggesting it would be noise.
+  assert.ok(!off.includes("sleeve"));
+  assert.ok(!off.includes("school"), "words central to the chosen campaign are kept");
+  assert.ok(!off.includes("bag"), "shared generic words are kept");
+});
+
+test("nothing is suggested as off-topic when no campaign is chosen", () => {
+  const rows = [term("laptop sleeve", { campaign: "Sleeve", clicks: 90 })];
+  assert.deepEqual(detectOffTopic(rows, new Set()), []);
 });

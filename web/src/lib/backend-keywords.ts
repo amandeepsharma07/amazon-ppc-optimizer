@@ -364,3 +364,58 @@ export function campaignsInReport(rows: SearchTermRow[]): CampaignSource[] {
   }
   return [...map.values()].sort((a, b) => b.clicks - a.clicks);
 }
+
+/* ---------------- automatic detection ----------------
+   Typing out competitor brands and off-topic words means knowing them all in
+   advance. Both can be read from the report instead, and offered pre-filled
+   for the seller to correct. */
+
+/** Known brand names actually present in this report. */
+export function detectBrands(rows: SearchTermRow[]): string[] {
+  const seen = new Set<string>();
+  for (const row of rows) {
+    for (const raw of normalise(row.term)) {
+      const word = singular(raw);
+      if (TRADEMARKED.has(word) || NEEDS_REVIEW.has(word)) seen.add(word);
+    }
+  }
+  return [...seen].sort();
+}
+
+/**
+ * Words that belong to a different product.
+ *
+ * A word earns its place if the queries carrying it come overwhelmingly from
+ * campaigns the seller did NOT pick: "laptop" appearing 300 times across the
+ * Laptop Sleeve campaign and twice under School Bags is leakage, not a
+ * feature of the school bag. Words that are common in the chosen campaigns
+ * are left alone however often they appear elsewhere, since a generic word
+ * like "bag" is shared by every product in the account.
+ */
+export function detectOffTopic(
+  rows: SearchTermRow[], selectedCampaigns: Set<string>
+): string[] {
+  if (!selectedCampaigns.size) return [];
+  const inside = new Map<string, number>();
+  const outside = new Map<string, number>();
+
+  for (const row of rows) {
+    if (!row.term) continue;
+    const target = selectedCampaigns.has(row.campaign || "(no campaign name)") ? inside : outside;
+    const weight = Math.max(1, row.clicks);
+    for (const raw of new Set(normalise(row.term).map(singular))) {
+      target.set(raw, (target.get(raw) ?? 0) + weight);
+    }
+  }
+
+  const suggestions: Array<{ word: string; out: number }> = [];
+  for (const [word, out] of outside) {
+    if (STOP_WORDS.has(word) || word.length < 3) continue;
+    const inCount = inside.get(word) ?? 0;
+    if (inCount === 0) continue;              // already removed by the campaign filter
+    if (out < 20) continue;                    // too rare elsewhere to be a pattern
+    if (out / (out + inCount) < 0.85) continue; // common in the chosen campaigns too
+    suggestions.push({ word, out });
+  }
+  return suggestions.sort((a, b) => b.out - a.out).slice(0, 25).map(s => s.word);
+}

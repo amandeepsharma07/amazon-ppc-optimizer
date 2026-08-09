@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MARKETPLACES, type Marketplace, type SearchTermRow } from "@/lib/analyze";
 import { ingestWorkbook } from "@/lib/parse";
 import {
-  buildBackendKeywords, byteLimitFor, campaignsInReport,
+  buildBackendKeywords, byteLimitFor, campaignsInReport, detectBrands, detectOffTopic,
   type BackendKeywordResult, type CampaignSource,
 } from "@/lib/backend-keywords";
 
@@ -27,6 +27,10 @@ export default function BackendKeywords() {
   const [campaigns, setCampaigns] = useState<CampaignSource[]>([]);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [excludeWords, setExcludeWords] = useState("");
+  // Both fields fill themselves from the report; these note that so the
+  // interface can say where the contents came from.
+  const [autoBrands, setAutoBrands] = useState(false);
+  const [autoExclude, setAutoExclude] = useState(false);
 
   const defaultLimit = byteLimitFor(marketplace.code);
 
@@ -42,9 +46,12 @@ export default function BackendKeywords() {
         );
       }
       const list = campaignsInReport(found.searchTerms);
+      const brands = detectBrands(found.searchTerms);
       setRows(found.searchTerms);
       setCampaigns(list);
       setChosen(new Set(list.map(c => c.campaign)));
+      setCompetitorBrands(brands.join(", "));
+      setAutoBrands(brands.length > 0);
       setFileNote(
         `${file.name} — ${found.searchTerms.length.toLocaleString()} search terms ` +
         `across ${list.length} campaign${list.length === 1 ? "" : "s"}`
@@ -61,6 +68,21 @@ export default function BackendKeywords() {
       setStatus("Upload a search term report to begin.");
     }
   }, []);
+
+  /* Off-topic words depend on which campaigns are in scope, so they are
+     recomputed whenever that changes rather than only on upload. */
+  useEffect(() => {
+    if (!rows || chosen.size === 0 || chosen.size === campaigns.length) {
+      if (autoExclude) { setExcludeWords(""); setAutoExclude(false); }
+      return;
+    }
+    const off = detectOffTopic(rows, chosen);
+    setExcludeWords(off.join(", "));
+    setAutoExclude(off.length > 0);
+    // Deliberately not depending on excludeWords: this sets it, and reacting
+    // to its own writes would fight the seller's edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, chosen, campaigns.length]);
 
   const canGenerate = Boolean(rows && productType.trim());
 
@@ -205,16 +227,22 @@ export default function BackendKeywords() {
           </div>
           <div className="row" style={{ marginTop: 12 }}>
             <div>
-              <label className="field-label" htmlFor="bk-comp">Competitor brands to avoid</label>
+              <label className="field-label" htmlFor="bk-comp">
+                Competitor brands to avoid
+                {autoBrands && <span className="auto-tag">found in your report</span>}
+              </label>
               <input id="bk-comp" type="text" value={competitorBrands}
-                placeholder="e.g. Skybags, Wildcraft"
-                onChange={e => setCompetitorBrands(e.target.value)} />
+                placeholder="filled from your report — edit if needed"
+                onChange={e => { setCompetitorBrands(e.target.value); setAutoBrands(false); }} />
             </div>
             <div>
-              <label className="field-label" htmlFor="bk-exclude">Words that don&apos;t fit this product</label>
+              <label className="field-label" htmlFor="bk-exclude">
+                Words that don&apos;t fit this product
+                {autoExclude && <span className="auto-tag">from your other campaigns</span>}
+              </label>
               <input id="bk-exclude" type="text" value={excludeWords}
-                placeholder="e.g. laptop, office, sleeve"
-                onChange={e => setExcludeWords(e.target.value)} />
+                placeholder="filled once you pick campaigns — edit if needed"
+                onChange={e => { setExcludeWords(e.target.value); setAutoExclude(false); }} />
             </div>
             <div>
               <label className="field-label" htmlFor="bk-limit">
