@@ -59,20 +59,29 @@ postgres://postgres:YOURPASSWORD@localhost:5432/postgres
 
 ## Step 4 — Point it at your database
 
-In the Explorer panel, expand the **web** folder, right-click it and choose
-**New File**. Name the file exactly:
+The app reads your connection string from a file called `.env.local`. This is a
+**file**, not something you type at the prompt — so rather than creating it by
+hand, let the terminal make it for you.
 
-```
-.env.local
+Open a terminal in VS Code (``Ctrl` ``) and run these three lines. The second
+one will stop and ask you for your connection string; paste the real one from
+step 2 and press Enter.
+
+```powershell
+cd C:\Users\hp\Documents\GitHub\amazon-ppc-optimizer\web
+$url = Read-Host "Paste your connection string"
+Set-Content -Path .env.local -Value "DATABASE_URL=$url"
 ```
 
-Put one line in it — your connection string from step 2:
+Check it landed correctly:
 
-```
-DATABASE_URL=postgres://…paste yours here…
+```powershell
+Get-Content .env.local
 ```
 
-Save with `Ctrl` + `S`.
+You should see one line starting `DATABASE_URL=postgres://` followed by your
+own database address. If it says `…paste your connection string…` then the
+placeholder got saved instead of the real thing — run the three lines again.
 
 ---
 
@@ -83,7 +92,6 @@ downloads what the app needs and takes a minute or two; you only ever do it
 once.
 
 ```powershell
-cd web
 npm install
 npm run dev
 ```
@@ -100,6 +108,10 @@ later, just `cd web` and `npm run dev` — no reinstalling.
 ---
 
 ## If something goes wrong
+
+**"is not recognized as the name of a cmdlet"** — a line meant for a file was
+typed at the prompt. Only lines shown as PowerShell steps are commands; the
+`DATABASE_URL=…` line belongs inside `.env.local`, which step 4 creates for you.
 
 **"Database not connected"** — the page names the exact problem underneath.
 Usually the connection string has a typo, or (with Option B) Postgres isn't
