@@ -21,6 +21,7 @@ export default function BackendKeywords() {
   const [result, setResult] = useState<BackendKeywordResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [showExcluded, setShowExcluded] = useState(false);
+  const [allowed, setAllowed] = useState<Set<string>>(new Set());
 
   const defaultLimit = byteLimitFor(marketplace.code);
 
@@ -48,13 +49,14 @@ export default function BackendKeywords() {
 
   const canGenerate = Boolean(rows && productType.trim());
 
-  function generate() {
+  function generate(allowList: Set<string> = allowed) {
     if (!rows) return;
     setError("");
     setCopied(false);
     const res = buildBackendKeywords(rows, {
       marketplace, title, brand, productType, competitorBrands,
       byteLimit: customLimit === "" ? undefined : Number(customLimit),
+      allowedBrands: [...allowList],
     });
     setResult(res);
     setStatus(
@@ -149,7 +151,7 @@ export default function BackendKeywords() {
         </div>
 
         <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-          <button className="btn" onClick={generate} disabled={!canGenerate}>
+          <button className="btn" onClick={() => generate()} disabled={!canGenerate}>
             Generate search terms
           </button>
           <span style={{ color: "var(--muted)", fontSize: 13.5 }}>{status}</span>
@@ -183,16 +185,34 @@ export default function BackendKeywords() {
             </p>
           </section>
 
-          {result.needsReview.length > 0 && (
-            <div className="caveat-box" style={{ marginTop: 18 }}>
-              <strong>Check these {result.needsReview.length} before you paste:</strong>{" "}
-              {result.needsReview.map(w => w.word).join(", ")}.
-              <br />
-              Each is both an ordinary word and a well-known brand. Keep it if it honestly
-              describes your product; remove it if shoppers searching it want someone else&apos;s
-              product — that&apos;s trademark use, and Amazon suppresses listings for it. To drop
-              one, add it to the competitor field above and generate again.
-            </div>
+          {(result.heldBack.length > 0 || allowed.size > 0) && (
+            <section className="card" style={{ marginTop: 18 }}>
+              <h2 className="section">Brand names held back</h2>
+              <p className="hint">
+                Each of these is both an ordinary word and a well-known brand, so it is
+                <strong> left out of the field above</strong>. Tick one only if it honestly
+                describes your own product. If shoppers searching it are looking for someone
+                else&apos;s product, leave it — that is trademark use, and Amazon suppresses
+                listings for it.
+              </p>
+              <div className="brand-checks">
+                {[...result.heldBack.map(w => w.word), ...allowed].sort().map(word => (
+                  <label key={word} className="brand-check">
+                    <input
+                      type="checkbox"
+                      checked={allowed.has(word)}
+                      onChange={e => {
+                        const next = new Set(allowed);
+                        if (e.target.checked) next.add(word); else next.delete(word);
+                        setAllowed(next);
+                        generate(next);
+                      }}
+                    />
+                    {word}
+                  </label>
+                ))}
+              </div>
+            </section>
           )}
 
           <section style={{ marginTop: 18 }}>

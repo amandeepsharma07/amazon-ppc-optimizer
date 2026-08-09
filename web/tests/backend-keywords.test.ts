@@ -154,15 +154,33 @@ test("unambiguous trademarks are refused outright", () => {
   assert.ok(res.searchTerms.split(" ").includes("tote"));
 });
 
-test("words that are both brands and ordinary vocabulary are kept but flagged", () => {
+test("brand-ambiguous words are kept OUT of the field by default", () => {
   const rows = [term("apple juice concentrate"), term("safari luggage")];
   const res = buildBackendKeywords(rows, { marketplace: US, ...base });
-  // kept, because only the seller knows whether it is legitimate
+  const words = res.searchTerms.split(" ");
+  // the copyable output must be safe to paste without reading any warning
+  assert.ok(!words.includes("apple"), "apple must not be in the field by default");
+  assert.ok(!words.includes("safari"), "safari must not be in the field by default");
+  // offered back for a decision
+  const held = res.heldBack.map(w => w.word);
+  assert.ok(held.includes("apple") && held.includes("safari"));
+  // ordinary words are unaffected
+  assert.ok(words.includes("juice") && words.includes("luggage"));
+});
+
+test("a confirmed brand-ambiguous word goes back in", () => {
+  const rows = [term("apple juice concentrate")];
+  const res = buildBackendKeywords(rows, { marketplace: US, ...base, allowedBrands: ["apple"] });
   assert.ok(res.searchTerms.split(" ").includes("apple"));
-  assert.ok(res.searchTerms.split(" ").includes("safari"));
-  // but surfaced for a decision
-  const flagged = res.needsReview.map(w => w.word);
-  assert.ok(flagged.includes("apple"), "apple should be flagged");
-  assert.ok(flagged.includes("safari"), "safari should be flagged");
-  assert.ok(!flagged.includes("juice"), "ordinary words should not be flagged");
+  assert.equal(res.heldBack.length, 0);
+  assert.ok(res.included.find(w => w.word === "apple")?.review);
+});
+
+test("confirming one brand word does not release the others", () => {
+  const rows = [term("apple safari genie bag")];
+  const res = buildBackendKeywords(rows, { marketplace: US, ...base, allowedBrands: ["safari"] });
+  const words = res.searchTerms.split(" ");
+  assert.ok(words.includes("safari"));
+  assert.ok(!words.includes("apple") && !words.includes("genie"));
+  assert.deepEqual(res.heldBack.map(w => w.word).sort(), ["apple", "genie"]);
 });

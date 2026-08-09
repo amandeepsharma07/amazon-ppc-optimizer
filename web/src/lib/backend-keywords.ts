@@ -97,10 +97,11 @@ const TRADEMARKED = new Set([
 ]);
 
 /**
- * Words that are both ordinary vocabulary and a well-known brand. Keeping them
- * may be perfectly legitimate — or may be trademark infringement — and only
- * the seller knows which. They stay in the output and are listed separately so
- * you can decide, rather than being dropped behind your back.
+ * Words that are both ordinary vocabulary and a well-known brand. Only the
+ * seller knows which applies, so these are held OUT of the field by default
+ * and offered back one at a time. A compliance tool has to fail safe: the
+ * copyable output must never contain something that breaches policy just
+ * because a warning went unread.
  */
 const NEEDS_REVIEW = new Set([
   "apple", "boat", "safari", "genie", "frozen", "anna", "thor", "hulk",
@@ -124,11 +125,16 @@ export interface BackendKeywordOptions {
   competitorBrands?: string;
   /** Override when your category's field size differs. */
   byteLimit?: number;
+  /**
+   * Brand-ambiguous words the seller has confirmed describe their product,
+   * so they may go in after all.
+   */
+  allowedBrands?: string[];
 }
 
 export interface IncludedWord {
   word: string;
-  /** Set when the word is also a known brand and only you can judge it. */
+  /** Set when this is a brand-ambiguous word the seller allowed back in. */
   review?: string;
   score: number;
   orders: number;
@@ -151,8 +157,11 @@ export interface BackendKeywordResult {
   included: IncludedWord[];
   excluded: ExcludedWord[];
   droppedForSpace: ExcludedWord[];
-  /** Included words that are also brand names — check before you paste. */
-  needsReview: IncludedWord[];
+  /**
+   * Brand-ambiguous words kept out of the field. Offer these to the seller;
+   * pass any they confirm back in as allowedBrands.
+   */
+  heldBack: ExcludedWord[];
   sourceTerms: number;
   sourceWords: number;
 }
@@ -196,6 +205,7 @@ export function buildBackendKeywords(
       alreadyIndexed.add(singular(word));
     }
   }
+  const allowedBrands = new Set((options.allowedBrands ?? []).map(w => singular(w.toLowerCase())));
   const competitors = new Set<string>();
   for (const word of normalise(options.competitorBrands ?? "")) {
     competitors.add(word);
@@ -233,6 +243,7 @@ export function buildBackendKeywords(
   }
 
   const excluded: ExcludedWord[] = [];
+  const heldBack: ExcludedWord[] = [];
   const candidates: Bucket[] = [];
   for (const bucket of words.values()) {
     const w = bucket.word;
@@ -248,8 +259,19 @@ export function buildBackendKeywords(
     else if (alreadyIndexed.has(w)) reason = "Already in your title, brand or product type — indexed already";
     else if (/^\d+$/.test(w) && w.length > 4) reason = "Long bare number — unlikely to be searched";
 
-    if (reason) excluded.push({ word: w, reason, score: bucket.score });
-    else candidates.push(bucket);
+    if (reason) {
+      excluded.push({ word: w, reason, score: bucket.score });
+      continue;
+    }
+    // Held out unless the seller has confirmed it describes their product.
+    if (NEEDS_REVIEW.has(w) && !allowedBrands.has(w)) {
+      heldBack.push({
+        word: w, score: bucket.score,
+        reason: "Also a well-known brand — left out unless you confirm it describes your product",
+      });
+      continue;
+    }
+    candidates.push(bucket);
   }
 
   candidates.sort((a, b) => b.score - a.score || a.word.localeCompare(b.word));
@@ -269,7 +291,7 @@ export function buildBackendKeywords(
         word: bucket.word, score: bucket.score, orders: bucket.orders,
         clicks: bucket.clicks, termCount: bucket.termCount, bytes: wordBytes,
         review: NEEDS_REVIEW.has(bucket.word)
-          ? "Also a well-known brand — keep it only if it genuinely describes your product"
+          ? "You confirmed this brand-ambiguous word describes your product"
           : undefined,
       });
     } else {
@@ -288,7 +310,7 @@ export function buildBackendKeywords(
     included,
     excluded,
     droppedForSpace,
-    needsReview: included.filter(i => i.review),
+    heldBack: heldBack.sort((a, b) => b.score - a.score),
     sourceTerms: terms.size,
     sourceWords: words.size,
   };

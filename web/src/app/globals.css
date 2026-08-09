@@ -213,3 +213,14 @@ td.ell { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
   margin-top: 22px; padding: 14px 16px; border-left: 3px solid var(--warn);
   background: var(--warn-bg); border-radius: 0 9px 9px 0; font-size: 13px; line-height: 1.55;
 }
+
+.brand-checks { display: flex; flex-wrap: wrap; gap: 10px; }
+.brand-check {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--line); border-radius: 99px;
+  padding: 6px 13px 6px 10px; font-size: 13.5px; cursor: pointer;
+  background: var(--surface);
+}
+.brand-check:hover { background: var(--surface-2); }
+.brand-check input { accent-color: var(--accent); cursor: pointer; }
+.brand-check:has(input:checked) { border-color: var(--accent); background: var(--surface-2); }
