@@ -191,7 +191,7 @@ export default function Analyzer() {
 
         <div className="row">
           {(["a", "b"] as const).map(slot => (
-            <div key={slot} style={{ flex: "1 1 280px" }}>
+            <div key={slot} className="row-full" style={{ flex: "1 1 280px" }}>
               <label className="field-label" htmlFor={`file-${slot}`}>
                 {slot === "a" ? "Bulk sheet or search term report" : "The other file (optional)"}
               </label>

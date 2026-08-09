@@ -186,7 +186,7 @@ export default function BackendKeywords() {
             </div>
           </div>
           <div className="row" style={{ marginTop: 12 }}>
-            <div style={{ flex: "1 1 100%" }}>
+            <div className="row-full">
               <label className="field-label" htmlFor="bk-title">Listing title</label>
               <input id="bk-title" type="text" value={title}
                 placeholder="Paste your full product title — every word in it is skipped"
@@ -194,7 +194,7 @@ export default function BackendKeywords() {
             </div>
           </div>
           <div className="row" style={{ marginTop: 12 }}>
-            <div style={{ flex: "1 1 100%" }}>
+            <div className="row-full">
               <label className="field-label" htmlFor="bk-desc">
                 Description and bullet points
               </label>

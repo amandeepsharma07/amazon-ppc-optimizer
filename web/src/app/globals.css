@@ -90,9 +90,9 @@ a { color: var(--accent); }
 .main { flex: 1; min-width: 0; }
 .page-head {
   display: flex; align-items: flex-start; gap: 12px;
-  padding: 22px 28px 0;
+  padding: 22px 28px 0; max-width: 1480px;
 }
-.page-body { padding: 4px 28px 64px; }
+.page-body { padding: 4px 28px 64px; max-width: 1480px; }
 .menu-toggle { display: none; }
 .scrim { display: none; }
 
@@ -191,8 +191,11 @@ td.ell { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
 .center-card .sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
 .stack { display: grid; gap: 14px; }
 .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
-.row > * { flex: 1 1 170px; }
-.row > .narrow { flex: 0 0 auto; }
+/* Fields grow to fill a narrow window but stop at a readable width — a text
+   box a metre wide on a large monitor is harder to use, not easier. */
+.row > * { flex: 1 1 170px; max-width: 420px; }
+.row > .narrow { flex: 0 0 auto; max-width: none; }
+.row > .row-full { flex: 1 1 100%; max-width: 900px; }
 
 /* ---- backend keyword output ---- */
 .terms-out {
