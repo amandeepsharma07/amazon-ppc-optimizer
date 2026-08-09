@@ -8,8 +8,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
+    // Extensions such as Grammarly and password managers add attributes to
+    // <body> before React hydrates. That is outside our control and harmless,
+    // but React reports the mismatch as an error, so this element opts out of
+    // the check. It is scoped to <body> only — real mismatches inside the app
+    // are still reported.
     <html lang="en">
-      <body>{children}</body>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
