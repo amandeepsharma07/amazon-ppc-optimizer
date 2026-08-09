@@ -12,7 +12,7 @@ recommendations) — never your keywords, search terms, or the files themselves.
 | Page | What it does |
 |---|---|
 | **Analyze** | Upload bulk sheet and/or search term report, pick marketplace, target ACOS/ROAS and sensitivity, get bid changes, negatives and harvest keywords |
-| **Backend keywords** | Builds the hidden Search Terms field from your search term report, to Amazon's rules for the marketplace you pick |
+| **Backend keywords** | Builds the hidden Search Terms field from the campaigns you pick, to Amazon's rules for your marketplace |
 | **History** | Every past run. Members see their own; admins see everyone's |
 | **Team** | Admins add people, reset passwords, change roles, sign someone out everywhere, or disable them |
 

@@ -1,7 +1,9 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { MARKETPLACES, type SearchTermRow } from "../src/lib/analyze.ts";
-import { buildBackendKeywords, byteLength, byteLimitFor } from "../src/lib/backend-keywords.ts";
+import {
+  buildBackendKeywords, byteLength, byteLimitFor, campaignsInReport,
+} from "../src/lib/backend-keywords.ts";
 
 const IN = MARKETPLACES.find(m => m.code === "IN")!;
 const US = MARKETPLACES.find(m => m.code === "US")!;
@@ -183,4 +185,50 @@ test("confirming one brand word does not release the others", () => {
   assert.ok(words.includes("safari"));
   assert.ok(!words.includes("apple") && !words.includes("genie"));
   assert.deepEqual(res.heldBack.map(w => w.word).sort(), ["apple", "genie"]);
+});
+
+test("campaigns in a report are listed with their volume", () => {
+  const rows = [
+    term("kids bag", { campaign: "School Bags", clicks: 10, orders: 2 }),
+    term("kids bag small", { campaign: "School Bags", clicks: 5, orders: 0 }),
+    term("laptop sleeve 15 inch", { campaign: "Laptop Sleeve", clicks: 40, orders: 1 }),
+  ];
+  const camps = campaignsInReport(rows);
+  assert.equal(camps.length, 2);
+  assert.equal(camps[0].campaign, "Laptop Sleeve"); // busiest first
+  assert.equal(camps[0].clicks, 40);
+  assert.equal(camps.find(c => c.campaign === "School Bags")?.terms, 2);
+});
+
+test("words judged irrelevant are refused", () => {
+  const rows = [term("laptop sleeve kids bag")];
+  const res = buildBackendKeywords(rows, {
+    marketplace: US, ...base, excludeWords: "laptop, sleeve",
+  });
+  const words = res.searchTerms.split(" ");
+  assert.ok(!words.includes("laptop") && !words.includes("sleeve"));
+  assert.ok(words.includes("kid") || words.includes("bag"));
+  assert.ok(res.excluded.some(e => /not describing your product/i.test(e.reason)));
+});
+
+test("multi-word brands are caught on their distinctive word", () => {
+  const rows = [term("american tourister backpack"), term("hello kitty pouch")];
+  const res = buildBackendKeywords(rows, { marketplace: US, ...base });
+  const words = res.searchTerms.split(" ");
+  assert.ok(!words.includes("tourister"), "tourister must be refused");
+  assert.ok(!words.includes("kitty"), "kitty is brand-ambiguous, so held back");
+  // the generic half of the phrase is fine
+  assert.ok(words.includes("backpack") || words.includes("pouch"));
+});
+
+test("words from the description are not repeated in the field", () => {
+  const rows = [term("waterproof padded ergonomic rucksack")];
+  const res = buildBackendKeywords(rows, {
+    marketplace: US, ...base,
+    description: "A waterproof backpack with padded shoulder straps.",
+  });
+  const words = res.searchTerms.split(" ");
+  assert.ok(!words.includes("waterproof"), "already in the description");
+  assert.ok(!words.includes("padded"), "already in the description");
+  assert.ok(words.includes("ergonomic") && words.includes("rucksack"));
 });

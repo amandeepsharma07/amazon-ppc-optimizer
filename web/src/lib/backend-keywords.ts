@@ -92,8 +92,12 @@ const TRADEMARKED = new Set([
   "pikachu", "doraemon", "chhotabheem", "motupatlu", "shinchan", "ben10",
   "peppa", "minions", "hellokitty", "starwars", "harrypotter", "hogwarts",
   "naruto", "nintendo", "hotwheels", "adidas", "gucci", "prada", "chanel",
-  "rolex", "samsonite", "americantourister", "skybag", "hilfiger", "levis",
-  "wildcraft", "aristocrat", "reebok", "fastrack", "titan",
+  "rolex", "samsonite", "skybag", "hilfiger", "levis", "wildcraft",
+  "aristocrat", "reebok", "fastrack",
+  // Multi-word brands are matched on their distinctive word, since search
+  // terms are tokenised before comparison: "american tourister" arrives as
+  // two words and would slip past an "americantourister" entry.
+  "tourister", "samsonsite", "decathlon", "quechua", "wildkraft",
 ]);
 
 /**
@@ -108,6 +112,8 @@ const NEEDS_REVIEW = new Set([
   "spider", "sonic", "mario", "patrol", "paw", "vip", "puma", "nike", "sony",
   "samsung", "jbl", "lego", "unicorn", "avenger", "champion", "polo", "coach",
   "guess", "monsoon", "next", "gap", "diesel", "fossil",
+  // Distinctive words of multi-word brands that are also ordinary vocabulary.
+  "kitty", "potter", "titan", "milton", "eagle", "wonder",
 ]);
 
 /** Rough ASIN shape: B followed by nine alphanumerics. */
@@ -121,6 +127,12 @@ export interface BackendKeywordOptions {
   brand: string;
   /** What the product is, e.g. "school backpack". Also already indexed. */
   productType: string;
+  /**
+   * The listing description or bullet points. Every word in it is indexed by
+   * Amazon already, so repeating any of them here would spend the byte budget
+   * on ground the listing already covers.
+   */
+  description?: string;
   /** Brands you must not target. Policy violation, and Amazon suppresses them. */
   competitorBrands?: string;
   /** Override when your category's field size differs. */
@@ -130,6 +142,12 @@ export interface BackendKeywordOptions {
    * so they may go in after all.
    */
   allowedBrands?: string[];
+  /**
+   * Words the seller has judged irrelevant to this product. A search term
+   * report covers a whole account, so terms from a different product's
+   * campaigns can describe something this listing isn't.
+   */
+  excludeWords?: string;
 }
 
 export interface IncludedWord {
@@ -199,7 +217,7 @@ export function buildBackendKeywords(
 
   // Words already indexed elsewhere on the listing — spending bytes again is waste.
   const alreadyIndexed = new Set<string>();
-  for (const source of [options.title, options.brand, options.productType]) {
+  for (const source of [options.title, options.brand, options.productType, options.description]) {
     for (const word of normalise(source ?? "")) {
       alreadyIndexed.add(word);
       alreadyIndexed.add(singular(word));
@@ -210,6 +228,11 @@ export function buildBackendKeywords(
   for (const word of normalise(options.competitorBrands ?? "")) {
     competitors.add(word);
     competitors.add(singular(word));
+  }
+  const banned = new Set<string>();
+  for (const word of normalise(options.excludeWords ?? "")) {
+    banned.add(word);
+    banned.add(singular(word));
   }
 
   // Aggregate identical queries first: the same term appears once per targeting
@@ -251,6 +274,7 @@ export function buildBackendKeywords(
     if (w.length < 2) reason = "Single character — carries no meaning";
     else if (STOP_WORDS.has(w)) reason = "Stop word — Amazon's index ignores it";
     else if (ASIN_RE.test(w)) reason = "Looks like an ASIN — not allowed in search terms";
+    else if (banned.has(w)) reason = "You marked this as not describing your product";
     else if (competitors.has(w)) reason = "Competitor brand — against Amazon policy";
     else if (TRADEMARKED.has(w)) {
       reason = "Trademarked name — using it without a licence gets listings suppressed";
@@ -314,4 +338,29 @@ export function buildBackendKeywords(
     sourceTerms: terms.size,
     sourceWords: words.size,
   };
+}
+
+export interface CampaignSource {
+  campaign: string;
+  terms: number;
+  clicks: number;
+  orders: number;
+}
+
+/**
+ * Campaigns present in a search term report, so the seller can build keywords
+ * from only the ones advertising the product being worked on. An account-wide
+ * report otherwise mixes in queries for entirely different products.
+ */
+export function campaignsInReport(rows: SearchTermRow[]): CampaignSource[] {
+  const map = new Map<string, CampaignSource>();
+  for (const row of rows) {
+    const name = row.campaign || "(no campaign name)";
+    const entry = map.get(name) ?? { campaign: name, terms: 0, clicks: 0, orders: 0 };
+    entry.terms += 1;
+    entry.clicks += row.clicks;
+    entry.orders += row.orders;
+    map.set(name, entry);
+  }
+  return [...map.values()].sort((a, b) => b.clicks - a.clicks);
 }

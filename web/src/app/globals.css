@@ -224,3 +224,23 @@ td.ell { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
 .brand-check:hover { background: var(--surface-2); }
 .brand-check input { accent-color: var(--accent); cursor: pointer; }
 .brand-check:has(input:checked) { border-color: var(--accent); background: var(--surface-2); }
+
+.campaign-list {
+  max-height: 260px; overflow-y: auto;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--surface);
+}
+.campaign-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 13px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13.5px;
+}
+.campaign-row:last-child { border-bottom: 0; }
+.campaign-row:hover { background: var(--surface-2); }
+.campaign-row input { accent-color: var(--accent); cursor: pointer; }
+.campaign-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.campaign-stats { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+
+.desc-input {
+  width: 100%; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px;
+  font: inherit; resize: vertical; line-height: 1.5;
+}

@@ -4,7 +4,8 @@ import { useCallback, useMemo, useState } from "react";
 import { MARKETPLACES, type Marketplace, type SearchTermRow } from "@/lib/analyze";
 import { ingestWorkbook } from "@/lib/parse";
 import {
-  buildBackendKeywords, byteLimitFor, type BackendKeywordResult,
+  buildBackendKeywords, byteLimitFor, campaignsInReport,
+  type BackendKeywordResult, type CampaignSource,
 } from "@/lib/backend-keywords";
 
 export default function BackendKeywords() {
@@ -12,6 +13,7 @@ export default function BackendKeywords() {
   const [productType, setProductType] = useState("");
   const [brand, setBrand] = useState("");
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [competitorBrands, setCompetitorBrands] = useState("");
   const [customLimit, setCustomLimit] = useState<number | "">("");
   const [rows, setRows] = useState<SearchTermRow[] | null>(null);
@@ -22,6 +24,9 @@ export default function BackendKeywords() {
   const [copied, setCopied] = useState(false);
   const [showExcluded, setShowExcluded] = useState(false);
   const [allowed, setAllowed] = useState<Set<string>>(new Set());
+  const [campaigns, setCampaigns] = useState<CampaignSource[]>([]);
+  const [chosen, setChosen] = useState<Set<string>>(new Set());
+  const [excludeWords, setExcludeWords] = useState("");
 
   const defaultLimit = byteLimitFor(marketplace.code);
 
@@ -36,9 +41,19 @@ export default function BackendKeywords() {
           "or a bulk file that includes one."
         );
       }
+      const list = campaignsInReport(found.searchTerms);
       setRows(found.searchTerms);
-      setFileNote(`${file.name} — ${found.searchTerms.length.toLocaleString()} search terms`);
-      setStatus("Ready — fill in your product details and generate.");
+      setCampaigns(list);
+      setChosen(new Set(list.map(c => c.campaign)));
+      setFileNote(
+        `${file.name} — ${found.searchTerms.length.toLocaleString()} search terms ` +
+        `across ${list.length} campaign${list.length === 1 ? "" : "s"}`
+      );
+      setStatus(
+        list.length > 1
+          ? "Pick the campaigns that sell this product, then generate."
+          : "Ready — fill in your product details and generate."
+      );
     } catch (err) {
       setRows(null);
       setFileNote("");
@@ -49,14 +64,22 @@ export default function BackendKeywords() {
 
   const canGenerate = Boolean(rows && productType.trim());
 
-  function generate(allowList: Set<string> = allowed) {
+  function generate(allowList: Set<string> = allowed, campaignList: Set<string> = chosen) {
     if (!rows) return;
     setError("");
     setCopied(false);
-    const res = buildBackendKeywords(rows, {
-      marketplace, title, brand, productType, competitorBrands,
+    const scoped = campaignList.size
+      ? rows.filter(r => campaignList.has(r.campaign || "(no campaign name)"))
+      : rows;
+    if (!scoped.length) {
+      setError("No search terms in the campaigns you picked. Choose at least one.");
+      return;
+    }
+    const res = buildBackendKeywords(scoped, {
+      marketplace, title, brand, productType, description, competitorBrands,
       byteLimit: customLimit === "" ? undefined : Number(customLimit),
       allowedBrands: [...allowList],
+      excludeWords,
     });
     setResult(res);
     setStatus(
@@ -99,8 +122,46 @@ export default function BackendKeywords() {
           )}
         </div>
 
+        {campaigns.length > 1 && (
+          <div>
+            <h2 className="section">2. Which campaigns sell this product?</h2>
+            <p className="hint">
+              Your report covers the whole account. Leaving other products&apos; campaigns ticked
+              pulls their search terms in — that is how a school bag ends up with
+              &ldquo;laptop&rdquo; in its keywords. Tick only the campaigns advertising the
+              listing you are writing for.
+            </p>
+            <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+              <button type="button" className="btn-ghost"
+                onClick={() => setChosen(new Set(campaigns.map(c => c.campaign)))}>Select all</button>
+              <button type="button" className="btn-ghost"
+                onClick={() => setChosen(new Set())}>Clear</button>
+              <span style={{ color: "var(--muted)", fontSize: 13, alignSelf: "center" }}>
+                {chosen.size} of {campaigns.length} selected
+              </span>
+            </div>
+            <div className="campaign-list">
+              {campaigns.map(c => (
+                <label key={c.campaign} className="campaign-row">
+                  <input type="checkbox" checked={chosen.has(c.campaign)}
+                    onChange={e => {
+                      const next = new Set(chosen);
+                      if (e.target.checked) next.add(c.campaign); else next.delete(c.campaign);
+                      setChosen(next);
+                    }} />
+                  <span className="campaign-name" title={c.campaign}>{c.campaign}</span>
+                  <span className="campaign-stats">
+                    {c.terms.toLocaleString()} terms · {c.clicks.toLocaleString()} clicks
+                    {c.orders > 0 && ` · ${c.orders.toLocaleString()} orders`}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
-          <h2 className="section">2. Your product</h2>
+          <h2 className="section">{campaigns.length > 1 ? "3." : "2."} Your product</h2>
           <p className="hint">
             Anything already on your listing is dropped, because Amazon indexes your title and
             brand anyway — repeating them here spends bytes twice and buys nothing.
@@ -133,11 +194,27 @@ export default function BackendKeywords() {
             </div>
           </div>
           <div className="row" style={{ marginTop: 12 }}>
+            <div style={{ flex: "1 1 100%" }}>
+              <label className="field-label" htmlFor="bk-desc">
+                Description and bullet points
+              </label>
+              <textarea id="bk-desc" rows={4} value={description} className="desc-input"
+                placeholder="Paste your bullet points and description. Amazon already indexes every word here, so anything you paste is skipped — which frees the budget for words your listing doesn't yet cover."
+                onChange={e => setDescription(e.target.value)} />
+            </div>
+          </div>
+          <div className="row" style={{ marginTop: 12 }}>
             <div>
               <label className="field-label" htmlFor="bk-comp">Competitor brands to avoid</label>
               <input id="bk-comp" type="text" value={competitorBrands}
                 placeholder="e.g. Skybags, Wildcraft"
                 onChange={e => setCompetitorBrands(e.target.value)} />
+            </div>
+            <div>
+              <label className="field-label" htmlFor="bk-exclude">Words that don&apos;t fit this product</label>
+              <input id="bk-exclude" type="text" value={excludeWords}
+                placeholder="e.g. laptop, office, sleeve"
+                onChange={e => setExcludeWords(e.target.value)} />
             </div>
             <div>
               <label className="field-label" htmlFor="bk-limit">
