@@ -49,13 +49,7 @@ Vercel doesn't host Postgres itself, so this is two steps rather than one.
 2. At **vercel.com**: **Add New → Project**, import this repository, and
    **set Root Directory to `web`** — the repo also holds the CLI and the
    standalone dashboard, so this step is required
-3. Add two environment variables:
-
-   | Name | Value |
-   |---|---|
-   | `DATABASE_URL` | the Neon connection string |
-   | `SESSION_SECRET` | any long random string |
-
+3. Add one environment variable, `DATABASE_URL`, set to the Neon connection string
 4. Deploy, open the URL, create your admin account
 
 If the site loads but you can't sign in, open `/setup` — it will say exactly
@@ -64,8 +58,7 @@ what is missing, including the database error if there is one.
 ### Railway
 
 **New Project → Deploy from GitHub**, set the root directory to `web`, then
-**New → Database → PostgreSQL**. Railway injects `DATABASE_URL` for you; add a
-`SESSION_SECRET` of your own.
+**New → Database → PostgreSQL**. Railway injects `DATABASE_URL` for you — nothing else to set.
 
 ### Optional: create the admin from the command line instead
 
@@ -79,10 +72,13 @@ DATABASE_URL="postgres://…" ADMIN_EMAIL="you@example.com" ADMIN_PASSWORD="…"
 
 ## Running it locally
 
+Step-by-step for Windows and VS Code, including installing Node and getting a
+database: **[RUN-ON-YOUR-PC.md](RUN-ON-YOUR-PC.md)**. The short version:
+
 ```bash
 cd web
 npm install
-cp .env.example .env.local     # only DATABASE_URL and SESSION_SECRET are needed
+cp .env.example .env.local     # set DATABASE_URL
 npm run dev                    # http://localhost:3000, then create your admin
 ```
 

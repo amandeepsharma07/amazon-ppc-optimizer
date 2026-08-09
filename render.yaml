@@ -22,8 +22,6 @@ services:
         fromDatabase:
           name: ppc-optimizer-db
           property: connectionString
-      - key: SESSION_SECRET
-        generateValue: true
       - key: NODE_VERSION
         value: "22"
 
