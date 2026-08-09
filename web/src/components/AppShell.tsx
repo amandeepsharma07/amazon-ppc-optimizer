@@ -1,0 +1,122 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+
+/* Icons are inline so the menu renders instantly with the page and needs no
+   icon font or network request. */
+const ICONS: Record<string, React.ReactNode> = {
+  analyze: (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M3 17V9m5 8V4m5 13v-6m5 6V7" />
+    </svg>
+  ),
+  history: (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <circle cx="10" cy="10" r="7" />
+      <path d="M10 6v4l3 2" />
+    </svg>
+  ),
+  team: (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <circle cx="7.5" cy="7" r="3" />
+      <path d="M2 17c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
+      <path d="M14 5.5a2.8 2.8 0 0 1 0 5.4M15 12.5c2 .6 3 2.3 3 4.5" />
+    </svg>
+  ),
+};
+
+export interface NavUser {
+  email: string;
+  name: string;
+  role: string;
+}
+
+export default function AppShell({
+  user, title, subtitle, children,
+}: {
+  user: NavUser;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.replace("/login");
+    router.refresh();
+  }
+
+  const items = [
+    { href: "/", icon: "analyze", label: "Analyze", hint: "Upload reports" },
+    { href: "/history", icon: "history", label: "History", hint: "Past runs" },
+    ...(user.role === "admin"
+      ? [{ href: "/admin", icon: "team", label: "Team", hint: "Who has access" }]
+      : []),
+  ];
+
+  return (
+    <div className="layout">
+      <aside className={`sidebar${open ? " open" : ""}`}>
+        <div className="sidebar-brand">
+          <span className="brand-mark" aria-hidden="true">PPC</span>
+          <span className="brand-name">Optimizer</span>
+        </div>
+
+        <nav className="sidebar-nav" aria-label="Main">
+          {items.map(item => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`nav-item${active ? " active" : ""}`}
+                aria-current={active ? "page" : undefined}
+                onClick={() => setOpen(false)}
+              >
+                <span className="nav-icon">{ICONS[item.icon]}</span>
+                <span className="nav-text">
+                  <span className="nav-label">{item.label}</span>
+                  <span className="nav-hint">{item.hint}</span>
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="sidebar-foot">
+          <div className="who">
+            <div className="who-name">{user.name || user.email.split("@")[0]}</div>
+            <div className="who-email" title={user.email}>{user.email}</div>
+            {user.role === "admin" && <span className="chip warn">admin</span>}
+          </div>
+          <button className="btn-ghost signout" onClick={signOut}>Sign out</button>
+        </div>
+      </aside>
+
+      <div className="main">
+        <header className="page-head">
+          <button
+            className="menu-toggle"
+            onClick={() => setOpen(v => !v)}
+            aria-expanded={open}
+            aria-label={open ? "Close menu" : "Open menu"}
+          >
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14" /></svg>
+          </button>
+          <div>
+            <h1 className="page">{title}</h1>
+            {subtitle && <p className="page-sub">{subtitle}</p>}
+          </div>
+        </header>
+        <div className="page-body">{children}</div>
+      </div>
+
+      {open && <div className="scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
+    </div>
+  );
+}

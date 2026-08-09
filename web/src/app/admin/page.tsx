@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import TopBar from "@/components/TopBar";
+import AppShell from "@/components/AppShell";
 import TeamManager from "@/components/TeamManager";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const user = await currentUser();
@@ -9,14 +11,12 @@ export default async function AdminPage() {
   if (user.role !== "admin") redirect("/");
 
   return (
-    <div className="shell">
-      <TopBar email={user.email} role={user.role} />
-      <h1 className="page">Team</h1>
-      <p className="page-sub">
-        Add people, change what they can do, and cut off access. Disabling someone signs them
-        out of every device immediately.
-      </p>
+    <AppShell
+      user={user}
+      title="Team"
+      subtitle="Add people, change what they can do, and cut off access. Disabling someone signs them out of every device immediately."
+    >
       <TeamManager currentUserId={user.id} />
-    </div>
+    </AppShell>
   );
 }

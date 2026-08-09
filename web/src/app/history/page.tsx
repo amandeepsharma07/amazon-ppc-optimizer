@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import TopBar from "@/components/TopBar";
+import AppShell from "@/components/AppShell";
 import { query } from "@/lib/db";
 
 interface RunRow {
@@ -21,6 +21,8 @@ function fmtMoney(value: number, currency: string) {
   }
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function HistoryPage() {
   const user = await currentUser();
   if (!user) redirect("/login");
@@ -35,17 +37,13 @@ export default async function HistoryPage() {
           WHERE r.user_id = $1 ORDER BY r.ran_at DESC LIMIT 200`,
         [user.id, user.email, user.name]);
 
-  return (
-    <div className="shell">
-      <TopBar email={user.email} role={user.role} />
-      <h1 className="page">History</h1>
-      <p className="page-sub">
-        {user.role === "admin"
-          ? "Every analysis run by anyone on the team, newest first."
-          : "Your past analyses, newest first."}
-        {" "}Only these headline figures are stored — never the reports themselves.
-      </p>
+  const subtitle = (user.role === "admin"
+    ? "Every analysis run by anyone on the team, newest first."
+    : "Your past analyses, newest first.")
+    + " Only these headline figures are stored — never the reports themselves.";
 
+  return (
+    <AppShell user={user} title="History" subtitle={subtitle}>
       {!runs.length ? (
         <div className="card"><p className="hint" style={{ margin: 0 }}>
           No runs yet. Head to Analyze and upload a report.
@@ -96,6 +94,6 @@ export default async function HistoryPage() {
           </table>
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }

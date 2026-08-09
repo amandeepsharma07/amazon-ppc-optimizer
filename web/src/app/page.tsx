@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { setupState } from "@/lib/setup";
-import TopBar from "@/components/TopBar";
+import AppShell from "@/components/AppShell";
 import Analyzer from "@/components/Analyzer";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +13,12 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   return (
-    <div className="shell">
-      <TopBar email={user.email} role={user.role} />
-      <h1 className="page">Analyze reports</h1>
-      <p className="page-sub">
-        Files are read in this browser and never uploaded. Only a summary of each run is saved to your history.
-      </p>
+    <AppShell
+      user={user}
+      title="Analyze reports"
+      subtitle="Files are read in this browser and never uploaded. Only a summary of each run is saved to your history."
+    >
       <Analyzer />
-    </div>
+    </AppShell>
   );
 }
