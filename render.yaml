@@ -1,0 +1,32 @@
+# One-click deploy to Render: creates the web service and its Postgres database
+# together, so there is no separate database signup and no connection string to
+# copy by hand.
+#
+#   1. render.com -> New -> Blueprint
+#   2. Point it at this repository
+#   3. Apply
+#
+# The app creates its own tables and asks you to make the first admin account
+# the first time you open it.
+services:
+  - type: web
+    name: ppc-optimizer
+    runtime: node
+    plan: free
+    rootDir: web
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /login
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ppc-optimizer-db
+          property: connectionString
+      - key: NODE_VERSION
+        value: "22"
+
+databases:
+  - name: ppc-optimizer-db
+    plan: free
+    databaseName: ppcoptimizer
+    user: ppcoptimizer

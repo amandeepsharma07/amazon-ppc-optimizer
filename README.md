@@ -1,9 +1,13 @@
 # Amazon PPC Optimizer
 
-Two tools, one goal: turn the reports you download from Amazon Ads into concrete
+Three ways to use one engine: turn the reports you download from Amazon Ads into concrete
 optimization actions — no API credentials required.
 
-1. **Web dashboard** (`dashboard/index.html`) — upload your **bulk sheet** and
+1. **Web app** (`web/`) — the full version: real accounts an admin creates and revokes,
+   a history of every run, and a team page. Deploys to Vercel with a Postgres database;
+   see [`web/README.md`](web/README.md). Ad reports are still parsed in the browser and
+   never uploaded.
+2. **Single-file dashboard** (`dashboard/index.html`) — upload your **bulk sheet** and
    **search term report**, pick your marketplace (India, USA, Canada, and more),
    set a target ACOS or ROAS, and get bid changes, negative keywords, and harvest
    keywords, each with a plain-language explanation. Runs entirely in the browser —
@@ -11,7 +15,10 @@ optimization actions — no API credentials required.
    anywhere; it's a single self-contained HTML file. With a bulk sheet uploaded it
    also produces a ready-to-upload **bid-update bulk file**. Sample files to try it
    with are in `examples/`.
-2. **CLI** (`ppcopt`) — the same engine as a scriptable command-line tool, below.
+3. **CLI** (`ppcopt`) — the same engine as a scriptable command-line tool, below.
+
+All three share the same optimisation rules. Start with the single file; move to the
+web app when you need to grant and revoke access to other people.
 
 ## The CLI
 

@@ -4,6 +4,7 @@
     --ground: #F2F5F7;
     --surface: #FFFFFF;
     --surface-2: #E9EEF2;
+    --zebra: #F7F9FB;
     --ink: #182430;
     --muted: #5C6C7B;
     --line: #D8E0E7;
@@ -19,25 +20,17 @@
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --ground: #0F151B;
-      --surface: #18212B;
-      --surface-2: #202B37;
-      --ink: #E6ECF1;
-      --muted: #90A0AE;
-      --line: #2A3642;
-      --accent: #E68A33;
-      --accent-ink: #14100A;
-      --good: #4CAE7C;
-      --good-bg: #1B3327;
-      --warn: #D1A24F;
-      --warn-bg: #35290F;
-      --crit: #E07A70;
-      --crit-bg: #3B1F1D;
+      --ground: #0F151B; --surface: #18212B; --surface-2: #202B37; --zebra: #1C2631;
+      --ink: #E6ECF1; --muted: #90A0AE; --line: #2A3642;
+      --accent: #E68A33; --accent-ink: #14100A;
+      --good: #4CAE7C; --good-bg: #1B3327;
+      --warn: #D1A24F; --warn-bg: #35290F;
+      --crit: #E07A70; --crit-bg: #3B1F1D;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
     }
   }
   :root[data-theme="light"] {
-    --ground: #F2F5F7; --surface: #FFFFFF; --surface-2: #E9EEF2;
+    --ground: #F2F5F7; --surface: #FFFFFF; --surface-2: #E9EEF2; --zebra: #F7F9FB;
     --ink: #182430; --muted: #5C6C7B; --line: #D8E0E7;
     --accent: #C05F1A; --accent-ink: #FFFFFF;
     --good: #217A4B; --good-bg: #E3F1E9;
@@ -46,7 +39,7 @@
     --shadow: 0 1px 2px rgba(24,36,48,.06), 0 4px 16px rgba(24,36,48,.05);
   }
   :root[data-theme="dark"] {
-    --ground: #0F151B; --surface: #18212B; --surface-2: #202B37;
+    --ground: #0F151B; --surface: #18212B; --surface-2: #202B37; --zebra: #1C2631;
     --ink: #E6ECF1; --muted: #90A0AE; --line: #2A3642;
     --accent: #E68A33; --accent-ink: #14100A;
     --good: #4CAE7C; --good-bg: #1B3327;
@@ -57,12 +50,10 @@
 
   * { box-sizing: border-box; }
   body {
-    background: var(--ground);
-    color: var(--ink);
+    background: var(--ground); color: var(--ink); margin: 0;
     font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    margin: 0;
   }
-  .app { max-width: 1080px; margin: 0 auto; padding: 28px 20px 64px; }
+  .app { max-width: 1400px; margin: 0 auto; padding: 28px 24px 64px; }
 
   .masthead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
   .masthead h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
@@ -70,11 +61,8 @@
   .privacy { color: var(--muted); font-size: 12.5px; margin: 0 0 20px; }
 
   .card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    box-shadow: var(--shadow);
-    padding: 18px 20px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; box-shadow: var(--shadow); padding: 18px 20px;
   }
 
   .controls { display: grid; gap: 16px; }
@@ -85,9 +73,8 @@
     text-transform: uppercase; color: var(--muted);
   }
   select, input[type="number"] {
-    background: var(--surface); color: var(--ink);
-    border: 1px solid var(--line); border-radius: 7px;
-    padding: 8px 10px; font: inherit; min-width: 120px;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 7px; padding: 8px 10px; font: inherit; min-width: 120px;
   }
   select:focus-visible, input:focus-visible, button:focus-visible, .dropzone:focus-visible {
     outline: 2px solid var(--accent); outline-offset: 2px;
@@ -100,16 +87,16 @@
   .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); }
   .target-hint { font-size: 12.5px; color: var(--muted); }
 
-  .dropzones { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .dropzones { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
   .dropzone {
-    border: 1.5px dashed var(--line); border-radius: 10px;
-    padding: 16px; cursor: pointer; background: var(--ground);
+    border: 1.5px dashed var(--line); border-radius: 10px; padding: 16px;
+    cursor: pointer; background: var(--ground);
     transition: border-color 0.15s ease, background 0.15s ease;
   }
   .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: var(--surface-2); }
   .dropzone .dz-title { font-weight: 650; font-size: 14px; display: flex; align-items: center; gap: 8px; }
   .dropzone .dz-note { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
-  .dropzone .dz-file { margin-top: 8px; font-size: 13px; display: none; }
+  .dropzone .dz-file { margin-top: 8px; font-size: 12.5px; display: none; }
   .dropzone.loaded { border-style: solid; border-color: var(--good); }
   .dropzone.loaded .dz-file { display: block; color: var(--good); font-weight: 600; }
   .dz-badge {
@@ -120,22 +107,20 @@
 
   .actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
   .btn-primary {
-    background: var(--accent); color: var(--accent-ink);
-    border: 0; border-radius: 8px; padding: 10px 22px;
-    font: inherit; font-weight: 700; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px;
+    padding: 10px 22px; font: inherit; font-weight: 700; cursor: pointer;
   }
   .btn-primary:hover { filter: brightness(1.06); }
   .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
   .btn-ghost {
-    background: var(--surface); color: var(--ink);
-    border: 1px solid var(--line); border-radius: 8px;
-    padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer;
   }
   .btn-ghost:hover { background: var(--surface-2); }
   .status-msg { font-size: 13.5px; color: var(--muted); }
   .status-msg.error { color: var(--crit); font-weight: 600; }
 
-  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 26px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 26px; }
   .kpi { padding: 14px 16px; }
   .kpi .k-label {
     font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em;
@@ -163,12 +148,12 @@
   .section-title { font-size: 15px; font-weight: 700; margin: 0 0 12px; }
 
   .bars { margin-top: 14px; }
-  .bar-row { display: grid; grid-template-columns: minmax(140px, 240px) 1fr auto auto; gap: 12px; align-items: center; padding: 3px 0; }
+  .bar-row { display: grid; grid-template-columns: minmax(160px, 280px) 1fr auto auto; gap: 14px; align-items: center; padding: 4px 0; }
   .bar-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bar-track { position: relative; height: 12px; }
   .bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 0 4px 4px 0; min-width: 2px; }
-  .bar-spend { font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; min-width: 84px; }
-  .bar-acos { min-width: 108px; text-align: right; }
+  .bar-spend { font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; min-width: 92px; }
+  .bar-acos { min-width: 116px; text-align: right; }
 
   .tabs { display: flex; gap: 4px; margin: 26px 0 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
   .tabs button {
@@ -178,42 +163,220 @@
   .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
   .tab-note { color: var(--muted); font-size: 13px; margin: 12px 2px; }
 
-  .table-wrap { overflow-x: auto; margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
-  table { border-collapse: collapse; width: 100%; font-size: 13px; }
-  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .table-wrap {
+    overflow-x: auto; margin-top: 12px;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 14px; white-space: nowrap; }
   th {
     font-size: 11px; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase;
     color: var(--muted); background: var(--surface); position: sticky; top: 0;
+    border-bottom: 1px solid var(--line);
   }
-  tr:last-child td { border-bottom: 0; }
-  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  td.why { color: var(--muted); min-width: 260px; }
-  td .arrow-up { color: var(--good); font-weight: 700; }
-  td .arrow-down { color: var(--crit); font-weight: 700; }
+  tbody tr.row { border-bottom: 1px solid var(--line); cursor: pointer; }
+  tbody tr.row:nth-of-type(4n+3) { background: var(--zebra); }
+  tbody tr.row:hover { background: var(--surface-2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.ell { max-width: 230px; overflow: hidden; text-overflow: ellipsis; }
+  td.reason { color: var(--muted); }
+  .chev { display: inline-block; width: 12px; color: var(--muted); transition: transform 0.15s ease; }
+  tr.row[aria-expanded="true"] .chev { transform: rotate(90deg); }
+  tr.detail > td {
+    padding: 0 14px 12px 32px; color: var(--muted); font-size: 13px;
+    white-space: normal; border-bottom: 1px solid var(--line);
+  }
+  tr.detail[hidden] { display: none; }
+  .up { color: var(--good); font-weight: 700; }
+  .down { color: var(--crit); font-weight: 700; }
 
   .downloads { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
 
   .tooltip {
-    position: fixed; z-index: 10; pointer-events: none;
+    position: fixed; z-index: 10; pointer-events: none; display: none;
     background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
-    box-shadow: var(--shadow); padding: 8px 12px; font-size: 12.5px; max-width: 300px;
-    display: none;
+    box-shadow: var(--shadow); padding: 8px 12px; font-size: 12.5px; max-width: 320px;
   }
   .tooltip .tt-title { font-weight: 700; margin-bottom: 2px; }
   .tooltip .tt-row { display: flex; justify-content: space-between; gap: 16px; font-variant-numeric: tabular-nums; }
   .tooltip .tt-row span:first-child { color: var(--muted); }
 
-  @media (prefers-reduced-motion: reduce) {
-    * { transition: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  /* ---- login gate ---- */
+  .gate {
+    position: fixed; inset: 0; z-index: 50; background: var(--ground);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
   }
+  .gate[hidden] { display: none; }
+  .gate-card { width: 100%; max-width: 380px; padding: 28px; text-align: left; }
+  .gate-card h1 { font-size: 19px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .gate-card .gate-sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .gate-card label {
+    display: block; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .gate-card input[type="password"] {
+    width: 100%; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 7px; padding: 10px 12px; font: inherit;
+  }
+  /* Overrides the uppercase treatment .gate-card label gives field labels. */
+  .gate-card label.gate-remember {
+    display: flex; align-items: center; gap: 8px; margin: 14px 0 18px;
+    font-size: 13px; font-weight: 400; color: var(--muted);
+    text-transform: none; letter-spacing: normal;
+  }
+  .gate-remember input { accent-color: var(--accent); }
+  .gate-card button { width: 100%; }
+  .gate-error {
+    color: var(--crit); font-size: 13px; font-weight: 600; margin: 12px 0 0; min-height: 19px;
+  }
+  .gate-foot { color: var(--muted); font-size: 12px; margin: 18px 0 0; line-height: 1.45; }
+  .logout {
+    background: none; border: 0; color: var(--muted); font: inherit; font-size: 12.5px;
+    cursor: pointer; text-decoration: underline; padding: 0;
+  }
+  .logout:hover { color: var(--ink); }
+
+  /* ---- admin panel ---- */
+  .admin { max-width: 780px; margin: 0 auto; padding: 28px 24px 64px; }
+  .admin[hidden] { display: none; }
+  .admin-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .admin-head h1 { font-size: 21px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .admin-head .sub { color: var(--muted); font-size: 13px; }
+  .admin section { margin-top: 18px; }
+  .admin h2 { font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+  .admin .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; }
+  .issue-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+  .issue-row .field { flex: 1 1 170px; }
+  .issue-row input[type="text"], .issue-row input[type="date"] {
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 7px; padding: 8px 10px; font: inherit; width: 100%;
+  }
+  .code-out { margin-top: 16px; padding: 14px 16px; border-radius: 9px; background: var(--surface-2); }
+  .code-out[hidden] { display: none; }
+  .code-out .code-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .code-value {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 16px; font-weight: 700; letter-spacing: 0.02em; word-break: break-all;
+  }
+  .issued-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .issued-table th, .issued-table td { padding: 9px 12px; text-align: left; white-space: nowrap; }
+  .issued-table th {
+    font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--muted); border-bottom: 1px solid var(--line);
+  }
+  .issued-table td { border-bottom: 1px solid var(--line); }
+  .issued-table td.code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .issued-empty { color: var(--muted); font-size: 13px; padding: 10px 2px; }
+  .link-btn {
+    background: none; border: 0; color: var(--crit); font: inherit; font-size: 13px;
+    cursor: pointer; text-decoration: underline; padding: 0;
+  }
+  .revoke-box {
+    margin-top: 12px; padding: 12px 14px; border-radius: 9px;
+    background: var(--surface-2); font-size: 12.5px; color: var(--muted);
+  }
+  .revoke-box[hidden] { display: none; }
+  .revoke-box code {
+    display: block; margin-top: 6px; padding: 8px 10px; border-radius: 6px;
+    background: var(--surface); color: var(--ink); word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+  }
+  .caveat {
+    margin-top: 24px; padding: 14px 16px; border-left: 3px solid var(--warn);
+    background: var(--warn-bg); border-radius: 0 9px 9px 0; font-size: 13px; line-height: 1.5;
+  }
+  .caveat strong { color: var(--ink); }
 </style>
 
-<div class="app">
+<div class="gate" id="gate">
+  <form class="card gate-card" id="gate-form" autocomplete="on">
+    <h1>PPC Optimizer Dashboard</h1>
+    <p class="gate-sub">Enter the password to continue.</p>
+    <label for="gate-pw">Password or access code</label>
+    <input type="password" id="gate-pw" autocomplete="current-password" autofocus>
+    <label class="gate-remember">
+      <input type="checkbox" id="gate-remember" checked>
+      Keep me signed in on this device
+    </label>
+    <button type="submit" class="btn-primary">Open dashboard</button>
+    <p class="gate-error" id="gate-error" role="alert"></p>
+    <p class="gate-foot">
+      This gate keeps the link private, not your data — nothing you upload ever leaves your browser.
+      <br><button type="button" class="logout" id="admin-link">Admin</button>
+    </p>
+  </form>
+</div>
+
+<div class="admin" id="admin" hidden>
+  <div class="admin-head">
+    <div>
+      <h1>Access admin</h1>
+      <span class="sub">Issue a dated code per person, then send it to them.</span>
+    </div>
+    <button type="button" class="logout" id="admin-exit">Back to sign in</button>
+  </div>
+
+  <section class="card">
+    <h2>Grant access</h2>
+    <p class="hint">
+      They enter this code on the sign-in screen instead of the password. It stops working
+      by itself on the expiry date, so access lapses without you having to do anything.
+    </p>
+    <form class="issue-row" id="issue-form">
+      <div class="field">
+        <label for="issue-name">Who is it for</label>
+        <input type="text" id="issue-name" placeholder="e.g. Priya" required>
+      </div>
+      <div class="field">
+        <label for="issue-expiry">Works until</label>
+        <input type="date" id="issue-expiry" required>
+      </div>
+      <button type="submit" class="btn-primary" style="flex:0 0 auto;width:auto">Generate code</button>
+    </form>
+    <p class="gate-error" id="issue-error" role="alert"></p>
+
+    <div class="code-out" id="code-out" hidden>
+      <div class="code-label">Send this code to <span id="code-for"></span> — it works until <span id="code-until"></span></div>
+      <div class="code-value">
+        <span id="code-text"></span>
+        <button type="button" class="btn-ghost" id="code-copy">Copy</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Codes you've issued</h2>
+    <p class="hint">Kept in this browser as your own record. Clearing it doesn't affect anyone's access.</p>
+    <div id="issued-wrap"></div>
+    <div class="revoke-box" id="revoke-box" hidden>
+      <strong>To actually cut off a code before it expires</strong>, paste the line below into
+      <code>dashboard/index.html</code>, replacing the existing <code>const REVOKED</code> line,
+      then re-save the file (and re-upload it wherever you host it).
+      <code id="revoke-line"></code>
+    </div>
+  </section>
+
+  <div class="caveat">
+    <strong>What this can and can't do.</strong> Codes are checked in the visitor's browser, so
+    someone who reads the page source can work around them. This is a practical lock for
+    colleagues and clients, not security against a determined person. Nothing sensitive sits
+    behind it — reports are read in memory and never sent anywhere. Real accounts you can revoke
+    instantly need a server.
+  </div>
+</div>
+
+<div class="app" id="app" hidden>
   <header class="masthead">
     <h1>PPC Optimizer Dashboard</h1>
     <span class="sub">Bulk sheet + search term report &rarr; bid changes, negatives &amp; harvest keywords</span>
   </header>
-  <p class="privacy">Everything runs in your browser — your ad data is never uploaded anywhere.</p>
+  <p class="privacy">
+    Everything runs in your browser — your ad data is never uploaded anywhere.
+    <button type="button" class="logout" id="logout">Sign out</button>
+  </p>
 
   <section class="card controls" aria-label="Setup">
     <div class="controls-row">
@@ -233,23 +396,31 @@
         <input type="number" id="target-value" value="30" min="0.1" step="0.5" inputmode="decimal">
       </div>
       <div class="field">
+        <label for="sensitivity">Sensitivity</label>
+        <select id="sensitivity">
+          <option value="conservative">Conservative — 15 clicks</option>
+          <option value="balanced" selected>Balanced — 10 clicks</option>
+          <option value="aggressive">Aggressive — 5 clicks</option>
+        </select>
+      </div>
+      <div class="field">
         <span class="label">&nbsp;</span>
         <span class="target-hint" id="target-hint"></span>
       </div>
     </div>
 
     <div class="dropzones">
-      <div class="dropzone" id="dz-bulk" tabindex="0" role="button" aria-label="Upload bulk sheet">
-        <div class="dz-title">Bulk sheet <span class="dz-badge">optional</span></div>
-        <div class="dz-note">Amazon Ads &rarr; Bulk operations &rarr; download (.xlsx). Gives exact current bids and lets you download a ready-to-upload update file.</div>
-        <div class="dz-file" id="dz-bulk-file"></div>
-        <input type="file" id="file-bulk" accept=".xlsx,.xlsm">
+      <div class="dropzone" id="dz-a" tabindex="0" role="button" aria-label="Upload a report">
+        <div class="dz-title">Drop a file here <span class="dz-badge">bulk or search term</span></div>
+        <div class="dz-note">Either report works in either box — each file is scanned and whatever it contains is used. A bulk file that includes a search term sheet counts as both.</div>
+        <div class="dz-file" id="dz-a-file"></div>
+        <input type="file" id="file-a" accept=".xlsx,.xlsm,.csv,.tsv">
       </div>
-      <div class="dropzone" id="dz-str" tabindex="0" role="button" aria-label="Upload search term report">
-        <div class="dz-title">Search term report <span class="dz-badge">optional</span></div>
-        <div class="dz-note">Amazon Ads &rarr; Sponsored ads reports &rarr; Search term report (.xlsx or .csv). Needed for negative keywords and harvesting.</div>
-        <div class="dz-file" id="dz-str-file"></div>
-        <input type="file" id="file-str" accept=".xlsx,.xlsm,.csv,.tsv">
+      <div class="dropzone" id="dz-b" tabindex="0" role="button" aria-label="Upload a second report">
+        <div class="dz-title">Drop the other file here <span class="dz-badge">optional</span></div>
+        <div class="dz-note">Bulk sheet gives exact current bids and a ready-to-upload update file. Search term report unlocks negative keywords and harvesting.</div>
+        <div class="dz-file" id="dz-b-file"></div>
+        <input type="file" id="file-b" accept=".xlsx,.xlsm,.csv,.tsv">
       </div>
     </div>
 
@@ -323,23 +494,25 @@ const COUNTRIES = [
 ];
 
 const RULES = {
-  minClicks: 5,          // clicks needed before a bid change is trusted
-  maxBidChange: 0.30,    // clamp bid moves to +/-30% per run
-  noSaleClicks: 8,       // clicks with no sale -> cut the bid
-  noSaleBidCut: 0.25,
-  negativeClicks: 10,    // clicks with zero orders -> negative exact
-  negativeSpendMultiple: 2.0,
-  harvestMinOrders: 2,
-  harvestMaxAcosMultiple: 1.2,
+  minClicks: 5, maxBidChange: 0.30, noSaleClicks: 8, noSaleBidCut: 0.25,
+  harvestMinOrders: 2, harvestMaxAcosMultiple: 1.2,
+};
+
+/* How hard to push. A search term is negated once it has had a fair chance to
+   convert — measured in clicks, or in spend against what one order may cost
+   (average order value x target ACOS). Spend is compared to cost-per-ORDER,
+   never cost-per-click: on accounts where a single click costs more than a
+   click's worth of revenue, a per-click threshold flags almost everything. */
+const SENSITIVITY = {
+  conservative: { label: "Conservative", negativeClicks: 15, cpaMultiple: 2.0 },
+  balanced:     { label: "Balanced",     negativeClicks: 10, cpaMultiple: 1.5 },
+  aggressive:   { label: "Aggressive",   negativeClicks: 5,  cpaMultiple: 1.0 },
 };
 
 const state = {
-  country: COUNTRIES[0],
-  targetMode: "ACOS",
-  bulk: null,   // { fileName, sheetName, headers, rawRows, keywords, negativesSet, hasPerf }
-  str: null,    // { fileName, rows }
-  results: null,
-  activeTab: "bids",
+  country: COUNTRIES[0], targetMode: "ACOS", sensitivity: "balanced",
+  bulk: null, str: null, results: null,
+  activeTab: "bids", expanded: new Set(),
 };
 
 /* ---------------- formatting ---------------- */
@@ -362,74 +535,92 @@ function esc(s) {
 }
 
 /* ---------------- parsing helpers ---------------- */
+/* Note: parentheses are kept (flattened, not stripped) so that
+   "Campaign Name" and "Campaign Name (Informational only)" stay distinct —
+   bulk sheets carry both, and only the second is populated on keyword rows. */
 function normHeader(h) {
-  return String(h || "").toLowerCase()
-    .replace(/\([^)]*\)/g, "")
-    .replace(/[^a-z0-9]+/g, "");
+  return String(h || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 function toNum(v) {
   if (v == null || v === "") return 0;
   if (typeof v === "number") return isFinite(v) ? v : 0;
-  const n = parseFloat(String(v).replace(/[₹$€£,%\s,]/g, "").replace(/,/g, ""));
+  const n = parseFloat(String(v).replace(/[₹$€£,%\s]/g, ""));
   return isFinite(n) ? n : 0;
 }
+function sheetGrid(workbook, name) {
+  return XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, raw: true, defval: null });
+}
 
-/* Search term report: find the header row, map columns by fuzzy name. */
+/* ---- search term report: scan every sheet for the header row ---- */
+const CAMPAIGN_H = ["campaignname", "campaignnameinformationalonly", "campaign"];
+const ADGROUP_H = ["adgroupname", "adgroupnameinformationalonly", "adgroup"];
+
 const STR_FIELDS = [
-  { field: "campaign", test: h => h === "campaignname" || h === "campaign" },
-  { field: "adGroup", test: h => h === "adgroupname" || h === "adgroup" },
-  { field: "targeting", test: h => h === "targeting" },
+  { field: "campaign", test: h => CAMPAIGN_H.includes(h) },
+  { field: "adGroup", test: h => ADGROUP_H.includes(h) },
+  { field: "targeting", test: h => h === "targeting" || h === "keywordtext" || h === "producttargetingexpression" },
   { field: "matchType", test: h => h === "matchtype" },
   { field: "term", test: h => h === "customersearchterm" || h === "searchterm" },
+  { field: "bid", test: h => h === "bid" },
   { field: "impressions", test: h => h === "impressions" },
   { field: "clicks", test: h => h === "clicks" },
   { field: "spend", test: h => h === "spend" || h === "cost" },
-  { field: "sales", test: h => h.endsWith("totalsales") || h === "sales" },
-  { field: "orders", test: h => h.includes("totalorders") || h === "orders" },
+  // "Total Advertising Cost of Sales (ACOS)" must not match as a sales column.
+  { field: "sales", test: h => h === "sales" || /(\d+day)?totalsales$/.test(h) || /\d+daysales$/.test(h) },
+  { field: "orders", test: h => h === "orders" || h.includes("totalorders") },
 ];
 
-function parseSearchTermReport(workbook) {
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const grid = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
-  let headerIdx = -1, mapping = null;
-  for (let i = 0; i < Math.min(grid.length, 8); i++) {
-    const normed = (grid[i] || []).map(normHeader);
-    if (normed.includes("customersearchterm") || normed.includes("searchterm")) {
-      headerIdx = i;
-      mapping = {};
+function isSearchTermHeader(normed) {
+  return normed.includes("customersearchterm") || normed.includes("searchterm");
+}
+
+/** Returns {rows, sheetName} or null. Scans all sheets, first 15 rows of each.
+    Sheets named like a search term report are tried first, and Sponsored
+    Products is preferred over Brands so an SP account isn't scored on SB data. */
+function extractSearchTerms(workbook) {
+  const rank = n => {
+    const s = n.toLowerCase();
+    if (!/search\s*term/.test(s)) return 2;
+    return /^sb|brand/.test(s) ? 1 : 0;
+  };
+  const ordered = [...workbook.SheetNames].sort((a, b) => rank(a) - rank(b));
+  for (const name of ordered) {
+    const grid = sheetGrid(workbook, name);
+    for (let i = 0; i < Math.min(grid.length, 15); i++) {
+      const normed = (grid[i] || []).map(normHeader);
+      if (!isSearchTermHeader(normed)) continue;
+
+      const mapping = {};
       normed.forEach((h, col) => {
         for (const { field, test } of STR_FIELDS) {
           if (mapping[field] === undefined && test(h)) { mapping[field] = col; break; }
         }
       });
-      break;
+      if (mapping.clicks === undefined) continue; // header-ish row without data columns
+
+      const rows = [];
+      for (let r = i + 1; r < grid.length; r++) {
+        const raw = grid[r] || [];
+        const get = f => (mapping[f] !== undefined ? raw[mapping[f]] : null);
+        const row = {
+          campaign: String(get("campaign") ?? "").trim(),
+          adGroup: String(get("adGroup") ?? "").trim(),
+          targeting: String(get("targeting") ?? "").trim(),
+          matchType: String(get("matchType") ?? "").trim(),
+          term: String(get("term") ?? "").trim(),
+          bid: toNum(get("bid")),
+          impressions: toNum(get("impressions")), clicks: toNum(get("clicks")),
+          spend: toNum(get("spend")), sales: toNum(get("sales")), orders: toNum(get("orders")),
+        };
+        if (row.term) rows.push(row);
+      }
+      if (rows.length) return { rows, sheetName: name };
     }
   }
-  if (headerIdx < 0) {
-    throw new Error("Couldn't find a 'Customer Search Term' column — is this the search term report?");
-  }
-  const rows = [];
-  for (let i = headerIdx + 1; i < grid.length; i++) {
-    const raw = grid[i] || [];
-    const get = f => (mapping[f] !== undefined ? raw[mapping[f]] : null);
-    const row = {
-      campaign: String(get("campaign") ?? "").trim(),
-      adGroup: String(get("adGroup") ?? "").trim(),
-      targeting: String(get("targeting") ?? "").trim(),
-      matchType: String(get("matchType") ?? "").trim(),
-      term: String(get("term") ?? "").trim(),
-      impressions: toNum(get("impressions")),
-      clicks: toNum(get("clicks")),
-      spend: toNum(get("spend")),
-      sales: toNum(get("sales")),
-      orders: toNum(get("orders")),
-    };
-    if (row.term || row.clicks || row.impressions) rows.push(row);
-  }
-  return rows;
+  return null;
 }
 
-/* Bulk sheet: find the Sponsored Products sheet, keep keyword/targeting rows. */
+/* ---- bulk sheet: scan every sheet for an Entity column ---- */
 const BULK_FIELDS = [
   { field: "entity", test: h => h === "entity" },
   { field: "operation", test: h => h === "operation" },
@@ -449,74 +640,86 @@ const BULK_FIELDS = [
   { field: "orders", test: h => h === "orders" },
 ];
 
-function parseBulkSheet(workbook) {
-  let sheetName = workbook.SheetNames.find(n => /sponsored\s*products/i.test(n));
-  if (!sheetName) {
-    sheetName = workbook.SheetNames.find(n => {
-      const grid = XLSX.utils.sheet_to_json(workbook.Sheets[n], { header: 1, range: 0, raw: true });
-      return grid.length && (grid[0] || []).map(normHeader).includes("entity");
-    });
-  }
-  if (!sheetName) {
-    throw new Error("Couldn't find a 'Sponsored Products Campaigns' sheet — is this the bulk operations file?");
-  }
-  const grid = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, raw: true, defval: null });
-  const headers = grid[0] || [];
-  const normed = headers.map(normHeader);
-  const mapping = {};
-  normed.forEach((h, col) => {
-    for (const { field, test } of BULK_FIELDS) {
-      if (mapping[field] === undefined && test(h)) { mapping[field] = col; break; }
-    }
+/** Returns bulk data or null. Prefers a Sponsored Products sheet, else any sheet with Entity. */
+function extractBulk(workbook) {
+  const ordered = [...workbook.SheetNames].sort((a, b) => {
+    const score = n => (/sponsored\s*products/i.test(n) ? 0 : 1);
+    return score(a) - score(b);
   });
-  if (mapping.entity === undefined) {
-    throw new Error("The bulk sheet has no 'Entity' column — download it from Bulk operations in the Amazon Ads console.");
-  }
 
-  const keywords = [];
-  const negativesSet = new Set();
-  const rawRows = [];
-  for (let i = 1; i < grid.length; i++) {
-    const raw = grid[i] || [];
-    const get = f => (mapping[f] !== undefined ? raw[mapping[f]] : null);
-    const entity = String(get("entity") ?? "").trim().toLowerCase();
-    const campaign = String(get("campaignInfo") ?? get("campaign") ?? "").trim()
-      || String(get("campaign") ?? "").trim();
-    const adGroup = String(get("adGroupInfo") ?? get("adGroup") ?? "").trim()
-      || String(get("adGroup") ?? "").trim();
+  for (const name of ordered) {
+    const grid = sheetGrid(workbook, name);
+    if (!grid.length) continue;
+    const normed = (grid[0] || []).map(normHeader);
+    if (!normed.includes("entity")) continue;
 
-    if (entity === "negative keyword" || entity === "campaign negative keyword") {
-      const kw = String(get("keyword") ?? "").trim().toLowerCase();
-      if (kw) negativesSet.add(`${campaign}||${adGroup}||${kw}`);
-      continue;
-    }
-    if (entity !== "keyword" && entity !== "product targeting") continue;
-    const stateVal = String(get("state") ?? "").trim().toLowerCase();
-    if (stateVal && stateVal !== "enabled") continue;
-
-    const target = entity === "keyword"
-      ? String(get("keyword") ?? "").trim()
-      : String(get("targetingExpr") ?? "").trim();
-    if (!target) continue;
-
-    keywords.push({
-      rowIndex: i,
-      entity,
-      campaign,
-      adGroup,
-      target,
-      matchType: String(get("matchType") ?? "").trim() || (entity === "product targeting" ? "targeting" : ""),
-      bid: toNum(get("bid")),
-      impressions: toNum(get("impressions")),
-      clicks: toNum(get("clicks")),
-      spend: toNum(get("spend")),
-      sales: toNum(get("sales")),
-      orders: toNum(get("orders")),
+    const mapping = {};
+    normed.forEach((h, col) => {
+      for (const { field, test } of BULK_FIELDS) {
+        if (mapping[field] === undefined && test(h)) { mapping[field] = col; break; }
+      }
     });
-    rawRows.push({ rowIndex: i, values: raw });
+
+    const keywords = [];
+    const negativesSet = new Set();
+    for (let i = 1; i < grid.length; i++) {
+      const raw = grid[i] || [];
+      const get = f => (mapping[f] !== undefined ? raw[mapping[f]] : null);
+      const entity = String(get("entity") ?? "").trim().toLowerCase();
+      const campaign = String(get("campaignInfo") ?? "").trim() || String(get("campaign") ?? "").trim();
+      const adGroup = String(get("adGroupInfo") ?? "").trim() || String(get("adGroup") ?? "").trim();
+
+      if (entity === "negative keyword" || entity === "campaign negative keyword") {
+        const kw = String(get("keyword") ?? "").trim().toLowerCase();
+        if (kw) negativesSet.add(`${campaign}||${adGroup}||${kw}`);
+        continue;
+      }
+      if (entity !== "keyword" && entity !== "product targeting") continue;
+      const st = String(get("state") ?? "").trim().toLowerCase();
+      if (st && st !== "enabled") continue;
+
+      const target = entity === "keyword"
+        ? String(get("keyword") ?? "").trim()
+        : String(get("targetingExpr") ?? "").trim();
+      if (!target) continue;
+
+      keywords.push({
+        rowIndex: i, entity, campaign, adGroup, target,
+        matchType: String(get("matchType") ?? "").trim() || (entity === "product targeting" ? "targeting" : ""),
+        bid: toNum(get("bid")), impressions: toNum(get("impressions")), clicks: toNum(get("clicks")),
+        spend: toNum(get("spend")), sales: toNum(get("sales")), orders: toNum(get("orders")),
+      });
+    }
+    if (keywords.length) {
+      return {
+        sheetName: name, headers: grid[0], grid, mapping, keywords, negativesSet,
+        hasPerf: keywords.some(k => k.clicks > 0),
+      };
+    }
   }
-  const hasPerf = keywords.some(k => k.clicks > 0);
-  return { sheetName, headers, grid, mapping, keywords, negativesSet, hasPerf };
+  return null;
+}
+
+/** Scan one uploaded workbook for everything it contains. */
+function ingestWorkbook(workbook, fileName) {
+  const found = [];
+  const bulk = extractBulk(workbook);
+  if (bulk) {
+    state.bulk = { fileName, ...bulk };
+    found.push(`${fmtNum(bulk.keywords.length)} keywords/targets` + (bulk.hasPerf ? "" : " (no performance data)"));
+  }
+  const str = extractSearchTerms(workbook);
+  if (str) {
+    state.str = { fileName, rows: str.rows, sheetName: str.sheetName };
+    found.push(`${fmtNum(str.rows.length)} search terms`);
+  }
+  if (!found.length) {
+    throw new Error(
+      `Nothing recognizable in "${fileName}". Sheets checked: ${workbook.SheetNames.join(", ")}. ` +
+      "Expected an Amazon bulk operations file or a search term report."
+    );
+  }
+  return found.join(" · ");
 }
 
 /* ---------------- recommendation engine ---------------- */
@@ -530,37 +733,49 @@ function bidRecFromStats(s, targetAcos, minBid, bidIsReal) {
   const current = s.currentBid > 0 ? s.currentBid : (s.clicks ? s.spend / s.clicks : 0);
   if (s.clicks < RULES.minClicks || current <= 0) return null;
   const acos = s.sales > 0 ? s.spend / s.sales : 0;
-  let suggested, action, why;
-  const bidWord = bidIsReal ? "bid" : "bid (est. from avg CPC)";
+  const bidWord = bidIsReal ? "bid" : "bid (estimated from average CPC)";
+  let suggested, action, reason, why;
 
   if (s.sales > 0) {
     const rpc = s.sales / s.clicks;
-    suggested = clampBid(rpc * targetAcos, current, minBid);
+    // Scale the bid by how far ACOS sits from target. Pricing straight off
+    // revenue-per-click would assume bid == realised CPC, which overshoots:
+    // in Amazon's auction you usually pay less than you bid.
+    suggested = clampBid(current * (targetAcos / acos), current, minBid);
     if (suggested > current * 1.05) {
       action = "increase";
-      why = `ACOS ${fmtPct(acos)} beats your ${fmtPct(targetAcos)} target — raise the ${bidWord} `
-          + `${fmtMoney(current)} → ${fmtMoney(suggested)} to win more traffic while staying profitable.`;
+      reason = "Beating target — room to scale";
+      why = `This target earns ${fmtMoney(rpc)} per click and runs at ${fmtPct(acos)} ACOS, comfortably inside your `
+          + `${fmtPct(targetAcos)} target. Raising the ${bidWord} from ${fmtMoney(current)} to ${fmtMoney(suggested)} buys `
+          + `more impressions with the headroom you have. The rise is capped at 30% per run so nothing jumps too far at once.`;
     } else if (suggested < current * 0.95) {
       action = "decrease";
-      why = `ACOS ${fmtPct(acos)} is above your ${fmtPct(targetAcos)} target — cut the ${bidWord} `
-          + `${fmtMoney(current)} → ${fmtMoney(suggested)} so each click costs what a sale can afford.`;
+      reason = "Over target — costs too much per click";
+      why = `Each click costs ${fmtMoney(current)} but returns only ${fmtMoney(rpc)} of sales, putting ACOS at ${fmtPct(acos)} `
+          + `against your ${fmtPct(targetAcos)} target — ${(acos / targetAcos).toFixed(1)}x what you want to pay. Scaling the `
+          + `${bidWord} down to ${fmtMoney(suggested)} brings the cost per click back in line. The cut is capped at 30% per run `
+          + `so you keep the traffic while it corrects.`;
     } else {
       action = "keep";
-      why = `ACOS ${fmtPct(acos)} is close to target — leave the bid at ${fmtMoney(current)}.`;
+      reason = "On target — leave alone";
+      why = `ACOS is ${fmtPct(acos)}, near your ${fmtPct(targetAcos)} target, so the current bid of ${fmtMoney(current)} `
+          + `is already about right. Changing it would risk volume for no gain.`;
     }
   } else if (s.clicks >= RULES.noSaleClicks) {
     suggested = Math.max(minBid, current * (1 - RULES.noSaleBidCut));
     action = "decrease";
-    why = `${fmtNum(s.clicks)} clicks and ${fmtMoney(s.spend)} spent with no sale — cut the ${bidWord} 25% `
-        + `(${fmtMoney(current)} → ${fmtMoney(suggested)}) while it proves itself.`;
+    reason = "Clicks but no sales";
+    why = `${fmtNum(s.clicks)} clicks and ${fmtMoney(s.spend)} spent without a single order. It may still convert, so `
+        + `rather than pausing it, cut the ${bidWord} 25% to ${fmtMoney(suggested)} — it keeps collecting data at a `
+        + `lower cost. If it still has no sales next run, negate it.`;
   } else {
     return null;
   }
   return {
     campaign: s.campaign, adGroup: s.adGroup, target: s.target, matchType: s.matchType,
     clicks: s.clicks, spend: s.spend, sales: s.sales, orders: s.orders, acos,
-    currentBid: current, newBid: Math.round(suggested * 100) / 100, action, why,
-    rowIndex: s.rowIndex,
+    currentBid: current, newBid: Math.round(suggested * 100) / 100,
+    action, reason, why, rowIndex: s.rowIndex,
   };
 }
 
@@ -570,9 +785,7 @@ function computeResults() {
   const strRows = state.str ? state.str.rows : [];
   const bulk = state.bulk;
 
-  /* --- bid recommendations --- */
-  let bids = [];
-  let bidSource = "";
+  let bids = [], bidSource = "";
   if (bulk && bulk.hasPerf) {
     bidSource = "bulk";
     bids = bulk.keywords
@@ -592,13 +805,15 @@ function computeResults() {
       let t = targets.get(key);
       if (!t) {
         t = { campaign: r.campaign, adGroup: r.adGroup, target: r.targeting, matchType: r.matchType,
-              clicks: 0, spend: 0, sales: 0, orders: 0, currentBid: 0 };
+              clicks: 0, spend: 0, sales: 0, orders: 0, currentBid: 0, sheetBid: 0 };
         targets.set(key, t);
       }
       t.clicks += r.clicks; t.spend += r.spend; t.sales += r.sales; t.orders += r.orders;
+      if (r.bid > 0) t.sheetBid = r.bid; // search term sheets carry the live bid
     }
     bids = [...targets.values()].map(t => {
-      const real = bidLookup.get(`${t.campaign}||${t.adGroup}||${t.target.toLowerCase()}||${t.matchType.toLowerCase()}`);
+      const real = bidLookup.get(`${t.campaign}||${t.adGroup}||${t.target.toLowerCase()}||${t.matchType.toLowerCase()}`)
+        || t.sheetBid;
       if (real > 0) t.currentBid = real;
       return bidRecFromStats(t, targetAcos, minBid, real > 0);
     }).filter(Boolean);
@@ -607,13 +822,15 @@ function computeResults() {
   }
   bids.sort((a, b) => b.spend - a.spend);
 
-  /* --- negatives (needs search term report) --- */
   let negatives = [];
+  const sens = SENSITIVITY[state.sensitivity];
   if (strRows.length) {
+    // What one order is allowed to cost: average order value x target ACOS.
     const totalSales = strRows.reduce((a, r) => a + r.sales, 0);
-    const totalClicks = strRows.reduce((a, r) => a + r.clicks, 0);
-    const accountRpc = totalClicks ? totalSales / totalClicks : 0;
-    const spendCeiling = accountRpc * targetAcos * RULES.negativeSpendMultiple;
+    const totalOrders = strRows.reduce((a, r) => a + r.orders, 0);
+    const aov = totalOrders ? totalSales / totalOrders : 0;
+    const targetCpa = aov * targetAcos;
+    const spendCeiling = targetCpa * sens.cpaMultiple;
 
     const terms = new Map();
     for (const r of strRows) {
@@ -625,21 +842,24 @@ function computeResults() {
     }
     for (const [key, t] of terms) {
       if (t.orders > 0) continue;
-      if (state.bulk && state.bulk.negativesSet.has(key)) continue; // already negated
-      let why = null;
-      if (t.clicks >= RULES.negativeClicks) {
-        why = `${fmtNum(t.clicks)} clicks, ${fmtMoney(t.spend)} spent, zero orders — shoppers click but never buy. `
-            + `Add as negative exact to stop the bleed.`;
-      } else if (spendCeiling > 0 && t.spend >= spendCeiling && t.clicks > 0) {
-        why = `${fmtMoney(t.spend)} spent with zero orders — over ${RULES.negativeSpendMultiple}× what a `
-            + `conversion may cost at your ${fmtPct(targetAcos)} target. Add as negative exact.`;
+      if (state.bulk && state.bulk.negativesSet.has(key)) continue;
+      let reason = null, why = null;
+      if (t.clicks >= sens.negativeClicks) {
+        reason = `${fmtNum(t.clicks)} clicks, no orders`;
+        why = `Shoppers searching "${t.term}" clicked your ad ${fmtNum(t.clicks)} times and bought nothing, costing `
+            + `${fmtMoney(t.spend)}. At ${sens.negativeClicks}+ clicks without a single order, the search simply doesn't `
+            + `match what you sell. Adding it as a negative exact keyword blocks this one phrase and leaves every other search untouched.`;
+      } else if (spendCeiling > 0 && t.spend >= spendCeiling) {
+        reason = `${fmtMoney(t.spend)} spent, no orders`;
+        why = `"${t.term}" has burned ${fmtMoney(t.spend)} across ${fmtNum(t.clicks)} clicks with nothing to show. At your `
+            + `${fmtPct(targetAcos)} target an order can only cost ${fmtMoney(targetCpa)}, so this term has already spent `
+            + `${(t.spend / targetCpa).toFixed(1)}x that without converting once. Block it as negative exact.`;
       }
-      if (why) negatives.push({ ...t, action: "negative exact", why });
+      if (reason) negatives.push({ ...t, action: "negative exact", reason, why });
     }
     negatives.sort((a, b) => b.spend - a.spend);
   }
 
-  /* --- harvest (needs search term report) --- */
   let harvest = [];
   if (strRows.length) {
     const maxAcos = targetAcos * RULES.harvestMaxAcosMultiple;
@@ -669,14 +889,17 @@ function computeResults() {
       harvest.push({
         term: t.term, campaign: t.campaign, adGroup: t.adGroup, source,
         clicks: t.clicks, spend: t.spend, sales: t.sales, orders: t.orders, acos, startBid,
-        why: `Converted ${fmtNum(t.orders)}× at ${fmtPct(acos)} ACOS from ${source} traffic — proven winner. `
-           + `Add as its own exact-match keyword at ${fmtMoney(startBid)}, and negate it in the source ad group.`,
+        reason: `${fmtNum(t.orders)} orders at ${fmtPct(acos)} ACOS`,
+        why: `"${t.term}" came in through ${source} targeting and produced ${fmtNum(t.orders)} orders worth `
+           + `${fmtMoney(t.sales)} at ${fmtPct(acos)} ACOS — proven demand you are currently reaching by accident. `
+           + `Give it its own exact-match keyword at ${fmtMoney(startBid)} (its revenue per click priced at your target) `
+           + `so you control the bid directly, then add it as a negative exact in ${t.adGroup || "the source ad group"} `
+           + `so the old targeting stops bidding against your new keyword.`,
       });
     }
     harvest.sort((a, b) => b.sales - a.sales);
   }
 
-  /* --- campaign summary --- */
   const srcRows = strRows.length ? strRows : (bulk ? bulk.keywords : []);
   const camps = new Map();
   for (const r of srcRows) {
@@ -706,20 +929,16 @@ function computeResults() {
 function getTargetAcos() {
   const v = parseFloat(document.getElementById("target-value").value);
   if (!isFinite(v) || v <= 0) return 0.30;
-  if (state.targetMode === "ACOS") return v > 1 ? v / 100 : v;
-  return 1 / v; // ROAS
+  return state.targetMode === "ACOS" ? (v > 1 ? v / 100 : v) : 1 / v;
 }
 
 function renderTargetHint() {
   const v = parseFloat(document.getElementById("target-value").value);
   const el = document.getElementById("target-hint");
   if (!isFinite(v) || v <= 0) { el.textContent = ""; return; }
-  if (state.targetMode === "ACOS") {
-    const acos = v > 1 ? v / 100 : v;
-    el.textContent = `= ROAS ${(1 / acos).toFixed(2)}`;
-  } else {
-    el.textContent = `= ACOS ${fmtPct(1 / v)}`;
-  }
+  el.textContent = state.targetMode === "ACOS"
+    ? `= ROAS ${(1 / (v > 1 ? v / 100 : v)).toFixed(2)}`
+    : `= ACOS ${fmtPct(1 / v)}`;
 }
 
 function statusChip(acos, targetAcos) {
@@ -737,8 +956,7 @@ function renderKpis(res) {
   const kpis = [
     { label: "Ad spend", value: fmtMoney0(totals.spend), sub: `${fmtNum(totals.clicks)} clicks` },
     { label: "Ad sales", value: fmtMoney0(totals.sales), sub: `${fmtNum(totals.orders)} orders` },
-    { label: "ACOS", value: acos ? fmtPct(acos) : "—",
-      sub: `target ${fmtPct(targetAcos)}`,
+    { label: "ACOS", value: acos ? fmtPct(acos) : "—", sub: `target ${fmtPct(targetAcos)}`,
       chip: acos ? (onTarget ? `<span class="chip good">on target</span>` : `<span class="chip crit">over target</span>`) : "" },
     { label: "ROAS", value: roas ? roas.toFixed(2) : "—", sub: `target ${(1 / targetAcos).toFixed(2)}` },
   ];
@@ -769,7 +987,9 @@ function renderOverview(res) {
   if (negatives.length) parts.push(`<strong>${negatives.length} negative keywords</strong> to add — search terms that ate ${fmtMoney0(wasted)} with zero orders`);
   if (cuts || raises) parts.push(`<strong>${bids.length} bid changes</strong> (${cuts} cuts, ${raises} raises) to pull each keyword toward its affordable cost per click`);
   if (harvest.length) parts.push(`<strong>${harvest.length} harvest keywords</strong> — proven search terms to promote to exact match`);
-  const p2 = parts.length ? `Biggest wins first: ${parts.join("; ")}.` : `No actionable rows found — the report may be too small or already optimized.`;
+  const p2 = parts.length
+    ? `Biggest wins first: ${parts.join("; ")}. Click any row below to see the reasoning in full.`
+    : `No actionable rows found — the report may be too small or already optimized.`;
 
   document.getElementById("overview").innerHTML = `<p>${p1}</p><p>${p2}</p>`;
 }
@@ -777,7 +997,7 @@ function renderOverview(res) {
 function renderCampaignBars(res) {
   const wrap = document.getElementById("campaign-bars");
   const card = document.getElementById("campaign-bars-card");
-  const camps = res.campaigns.slice(0, 12);
+  const camps = res.campaigns.slice(0, 10);
   if (!camps.length) { card.hidden = true; return; }
   card.hidden = false;
   const max = Math.max(...camps.map(c => c.spend), 1);
@@ -801,15 +1021,14 @@ function renderCampaignBars(res) {
         <div class="tt-row"><span>Orders</span><span>${fmtNum(c.orders)}</span></div>
         <div class="tt-row"><span>ACOS</span><span>${c.acos ? fmtPct(c.acos) : "—"}</span></div>
         <div class="tt-row"><span>CVR</span><span>${fmtPct(c.cvr)}</span></div>`;
-      const x = Math.min(e.clientX + 14, window.innerWidth - tooltip.offsetWidth - 10);
-      const y = Math.min(e.clientY + 14, window.innerHeight - tooltip.offsetHeight - 10);
-      tooltip.style.left = x + "px"; tooltip.style.top = y + "px";
+      tooltip.style.left = Math.min(e.clientX + 14, window.innerWidth - tooltip.offsetWidth - 10) + "px";
+      tooltip.style.top = Math.min(e.clientY + 14, window.innerHeight - tooltip.offsetHeight - 10) + "px";
     });
     rowEl.addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
   });
 }
 
-const MAX_TABLE_ROWS = 200;
+const MAX_TABLE_ROWS = 150;
 
 const TABS = [
   { id: "bids", label: r => `Bid changes (${r.bids.length})` },
@@ -824,78 +1043,129 @@ function renderTabs(res) {
     <button role="tab" data-tab="${t.id}" aria-selected="${state.activeTab === t.id}">${t.label(res)}</button>`).join("");
   nav.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
     state.activeTab = b.dataset.tab;
+    state.expanded.clear();
     renderTabs(res); renderTable(res);
   }));
 }
 
-function actionCell(action) {
-  if (action === "increase") return `<span class="arrow-up">↑ raise</span>`;
-  if (action === "decrease") return `<span class="arrow-down">↓ lower</span>`;
-  return "keep";
+/** Build a table from column specs; rows with `why` get an expandable detail row. */
+function buildTable(columns, records, getWhy) {
+  const head = `<thead><tr>${columns.map(c =>
+    `<th class="${c.num ? "num" : ""}">${c.label}</th>`).join("")}</tr></thead>`;
+  const body = records.map((rec, i) => {
+    const cells = columns.map(c => {
+      const cls = [c.num ? "num" : "", c.ell ? "ell" : "", c.cls || ""].filter(Boolean).join(" ");
+      const title = c.ell ? ` title="${esc(c.raw ? c.raw(rec) : c.get(rec))}"` : "";
+      return `<td class="${cls}"${title}>${c.get(rec)}</td>`;
+    }).join("");
+    const why = getWhy ? getWhy(rec) : null;
+    const open = state.expanded.has(i);
+    const main = `<tr class="row" data-i="${i}"${why ? ` aria-expanded="${open}"` : ""}>${cells}</tr>`;
+    const detail = why
+      ? `<tr class="detail" data-detail="${i}"${open ? "" : " hidden"}><td colspan="${columns.length}">${esc(why)}</td></tr>`
+      : "";
+    return main + detail;
+  }).join("");
+  return head + `<tbody>${body}</tbody>`;
 }
 
 function renderTable(res) {
   const table = document.getElementById("results-table");
   const note = document.getElementById("tab-note");
   const tab = state.activeTab;
+  const cur = () => state.country.currency;
   let html = "", noteText = "", count = 0;
 
+  const chev = `<span class="chev">›</span>`;
+  const arrow = a => a === "increase" ? `<span class="up">↑</span>` : a === "decrease" ? `<span class="down">↓</span>` : "";
+
   if (tab === "bids") {
+    const rows = res.bids.slice(0, MAX_TABLE_ROWS);
     count = res.bids.length;
     if (!count) {
       noteText = res.bidSource === "bulk-noperf"
-        ? "The bulk sheet has no performance columns — when downloading it, tick “campaign item performance”, or also upload a search term report."
+        ? "Your bulk file has no performance columns. Re-download it with “campaign item performance” ticked, or add a search term report."
         : "No bid changes suggested — targets either lack enough clicks or are already priced right.";
     } else if (res.bidSource === "str") {
-      noteText = "No bulk sheet uploaded, so current bids are estimated from average CPC. Upload the bulk sheet for exact bids and a ready-to-upload update file.";
+      noteText = "No bulk file loaded, so current bids are estimated from average CPC. Add the bulk file for exact bids and a ready-to-upload update file.";
     }
-    html = `<thead><tr><th>Campaign</th><th>Ad group</th><th>Target</th><th>Match</th>
-      <th class="num">Clicks</th><th class="num">Spend</th><th class="num">Sales</th><th class="num">ACOS</th>
-      <th class="num">Bid</th><th class="num">New bid</th><th>Action</th><th>Why</th></tr></thead><tbody>`
-      + res.bids.slice(0, MAX_TABLE_ROWS).map(b => `<tr>
-        <td>${esc(b.campaign)}</td><td>${esc(b.adGroup)}</td><td>${esc(b.target)}</td><td>${esc(b.matchType)}</td>
-        <td class="num">${fmtNum(b.clicks)}</td><td class="num">${fmtMoney(b.spend)}</td>
-        <td class="num">${fmtMoney(b.sales)}</td><td class="num">${b.acos ? fmtPct(b.acos) : "—"}</td>
-        <td class="num">${fmtMoney(b.currentBid)}</td><td class="num"><strong>${fmtMoney(b.newBid)}</strong></td>
-        <td>${actionCell(b.action)}</td><td class="why">${esc(b.why)}</td></tr>`).join("") + "</tbody>";
+    html = buildTable([
+      { label: "", get: () => chev, cls: "" },
+      { label: "Target", get: r => `<strong>${esc(r.target)}</strong>`, raw: r => r.target, ell: true },
+      { label: "Match", get: r => esc(r.matchType || "—") },
+      { label: "Campaign", get: r => esc(r.campaign), raw: r => r.campaign, ell: true },
+      { label: "Clicks", get: r => fmtNum(r.clicks), num: true },
+      { label: "Spend", get: r => fmtMoney(r.spend), num: true },
+      { label: "Sales", get: r => fmtMoney(r.sales), num: true },
+      { label: "ACOS", get: r => r.acos ? fmtPct(r.acos) : "—", num: true },
+      { label: "Bid", get: r => fmtMoney(r.currentBid), num: true },
+      { label: "New bid", get: r => `${arrow(r.action)} <strong>${fmtMoney(r.newBid)}</strong>`, num: true },
+      { label: "Reason", get: r => esc(r.reason), cls: "reason" },
+    ], rows, r => r.why);
   } else if (tab === "negatives") {
+    const rows = res.negatives.slice(0, MAX_TABLE_ROWS);
     count = res.negatives.length;
-    if (!state.str) noteText = "Negative keywords need the search term report — upload it to see which searches waste spend.";
+    if (!state.str) noteText = "Negative keywords need search term data — upload the search term report (or a bulk file that includes one).";
     else if (!count) noteText = "No wasted-spend search terms found — nice and clean.";
-    html = `<thead><tr><th>Campaign</th><th>Ad group</th><th>Search term</th>
-      <th class="num">Clicks</th><th class="num">Spend</th><th class="num">Orders</th><th>Add as</th><th>Why</th></tr></thead><tbody>`
-      + res.negatives.slice(0, MAX_TABLE_ROWS).map(n => `<tr>
-        <td>${esc(n.campaign)}</td><td>${esc(n.adGroup)}</td><td><strong>${esc(n.term)}</strong></td>
-        <td class="num">${fmtNum(n.clicks)}</td><td class="num">${fmtMoney(n.spend)}</td><td class="num">0</td>
-        <td><span class="chip crit">negative exact</span></td><td class="why">${esc(n.why)}</td></tr>`).join("") + "</tbody>";
+    html = buildTable([
+      { label: "", get: () => chev },
+      { label: "Search term", get: r => `<strong>${esc(r.term)}</strong>`, raw: r => r.term, ell: true },
+      { label: "Campaign", get: r => esc(r.campaign), raw: r => r.campaign, ell: true },
+      { label: "Ad group", get: r => esc(r.adGroup), raw: r => r.adGroup, ell: true },
+      { label: "Clicks", get: r => fmtNum(r.clicks), num: true },
+      { label: "Spend", get: r => fmtMoney(r.spend), num: true },
+      { label: "Add as", get: () => `<span class="chip crit">negative exact</span>` },
+      { label: "Reason", get: r => esc(r.reason), cls: "reason" },
+    ], rows, r => r.why);
   } else if (tab === "harvest") {
+    const rows = res.harvest.slice(0, MAX_TABLE_ROWS);
     count = res.harvest.length;
-    if (!state.str) noteText = "Harvesting needs the search term report — upload it to find converting terms worth promoting.";
+    if (!state.str) noteText = "Harvesting needs search term data — upload the search term report (or a bulk file that includes one).";
     else if (!count) noteText = "No harvest candidates yet — terms need at least 2 orders at a healthy ACOS.";
-    html = `<thead><tr><th>Search term</th><th>From campaign</th><th>Source</th>
-      <th class="num">Orders</th><th class="num">Sales</th><th class="num">ACOS</th><th class="num">Start bid</th><th>Why</th></tr></thead><tbody>`
-      + res.harvest.slice(0, MAX_TABLE_ROWS).map(h => `<tr>
-        <td><strong>${esc(h.term)}</strong></td><td>${esc(h.campaign)}</td><td>${esc(h.source)}</td>
-        <td class="num">${fmtNum(h.orders)}</td><td class="num">${fmtMoney(h.sales)}</td>
-        <td class="num">${fmtPct(h.acos)}</td><td class="num"><strong>${fmtMoney(h.startBid)}</strong></td>
-        <td class="why">${esc(h.why)}</td></tr>`).join("") + "</tbody>";
+    html = buildTable([
+      { label: "", get: () => chev },
+      { label: "Search term", get: r => `<strong>${esc(r.term)}</strong>`, raw: r => r.term, ell: true },
+      { label: "Source", get: r => esc(r.source) },
+      { label: "Campaign", get: r => esc(r.campaign), raw: r => r.campaign, ell: true },
+      { label: "Orders", get: r => fmtNum(r.orders), num: true },
+      { label: "Sales", get: r => fmtMoney(r.sales), num: true },
+      { label: "ACOS", get: r => fmtPct(r.acos), num: true },
+      { label: "Start bid", get: r => `<strong>${fmtMoney(r.startBid)}</strong>`, num: true },
+      { label: "Reason", get: r => esc(r.reason), cls: "reason" },
+    ], rows, r => r.why);
   } else {
     count = res.campaigns.length;
-    html = `<thead><tr><th>Campaign</th><th class="num">Impressions</th><th class="num">Clicks</th>
-      <th class="num">Spend</th><th class="num">Sales</th><th class="num">Orders</th>
-      <th class="num">CTR</th><th class="num">CVR</th><th class="num">CPC</th><th class="num">ACOS</th><th class="num">ROAS</th></tr></thead><tbody>`
-      + res.campaigns.map(c => `<tr>
-        <td>${esc(c.campaign)}</td><td class="num">${fmtNum(c.impressions)}</td><td class="num">${fmtNum(c.clicks)}</td>
-        <td class="num">${fmtMoney(c.spend)}</td><td class="num">${fmtMoney(c.sales)}</td><td class="num">${fmtNum(c.orders)}</td>
-        <td class="num">${fmtPct(c.ctr)}</td><td class="num">${fmtPct(c.cvr)}</td><td class="num">${fmtMoney(c.cpc)}</td>
-        <td class="num">${c.acos ? fmtPct(c.acos) : "—"}</td><td class="num">${c.roas.toFixed(2)}</td></tr>`).join("") + "</tbody>";
+    html = buildTable([
+      { label: "Campaign", get: r => esc(r.campaign), raw: r => r.campaign, ell: true },
+      { label: "Impressions", get: r => fmtNum(r.impressions), num: true },
+      { label: "Clicks", get: r => fmtNum(r.clicks), num: true },
+      { label: "Spend", get: r => fmtMoney(r.spend), num: true },
+      { label: "Sales", get: r => fmtMoney(r.sales), num: true },
+      { label: "Orders", get: r => fmtNum(r.orders), num: true },
+      { label: "CTR", get: r => fmtPct(r.ctr), num: true },
+      { label: "CVR", get: r => fmtPct(r.cvr), num: true },
+      { label: "CPC", get: r => fmtMoney(r.cpc), num: true },
+      { label: "ACOS", get: r => r.acos ? fmtPct(r.acos) : "—", num: true },
+      { label: "ROAS", get: r => r.roas.toFixed(2), num: true },
+    ], res.campaigns, null);
   }
 
   if (count > MAX_TABLE_ROWS) {
-    noteText = `Showing top ${MAX_TABLE_ROWS} of ${count} rows by spend — download the workbook for the full list. ` + noteText;
+    noteText = `Showing the top ${MAX_TABLE_ROWS} of ${count} rows by spend — the downloaded workbook has all of them. ` + noteText;
   }
   note.textContent = noteText;
   table.innerHTML = html;
+
+  table.querySelectorAll("tr.row[aria-expanded]").forEach(tr => {
+    tr.addEventListener("click", () => {
+      const i = tr.dataset.i;
+      const detail = table.querySelector(`tr.detail[data-detail="${i}"]`);
+      const open = tr.getAttribute("aria-expanded") === "true";
+      tr.setAttribute("aria-expanded", String(!open));
+      if (detail) detail.hidden = open;
+      if (open) state.expanded.delete(+i); else state.expanded.add(+i);
+    });
+  });
 }
 
 /* ---------------- downloads ---------------- */
@@ -905,21 +1175,24 @@ function downloadWorkbook(res) {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(res.campaigns.map(c => ({
     Campaign: c.campaign, Impressions: c.impressions, Clicks: c.clicks,
     Spend: money(c.spend), Sales: money(c.sales), Orders: c.orders,
-    CTR: +(c.ctr).toFixed(4), CVR: +(c.cvr).toFixed(4), CPC: money(c.cpc),
-    ACOS: +(c.acos).toFixed(4), ROAS: +(c.roas).toFixed(2),
+    CTR: +c.ctr.toFixed(4), CVR: +c.cvr.toFixed(4), CPC: money(c.cpc),
+    ACOS: +c.acos.toFixed(4), ROAS: +c.roas.toFixed(2),
   }))), "Campaign Summary");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(res.bids.map(b => ({
     Campaign: b.campaign, "Ad Group": b.adGroup, Target: b.target, "Match Type": b.matchType,
-    Clicks: b.clicks, Spend: money(b.spend), Sales: money(b.sales), ACOS: +(b.acos).toFixed(4),
-    "Current Bid": money(b.currentBid), "New Bid": b.newBid, Action: b.action, Why: b.why,
+    Clicks: b.clicks, Spend: money(b.spend), Sales: money(b.sales), ACOS: +b.acos.toFixed(4),
+    "Current Bid": money(b.currentBid), "New Bid": b.newBid, Action: b.action,
+    Reason: b.reason, Explanation: b.why,
   }))), "Bid Recommendations");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(res.negatives.map(n => ({
     Campaign: n.campaign, "Ad Group": n.adGroup, "Search Term": n.term,
-    Clicks: n.clicks, Spend: money(n.spend), Orders: 0, "Add As": "negative exact", Why: n.why,
+    Clicks: n.clicks, Spend: money(n.spend), Orders: 0, "Add As": "negative exact",
+    Reason: n.reason, Explanation: n.why,
   }))), "Negative Keywords");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(res.harvest.map(h => ({
     "Search Term": h.term, "From Campaign": h.campaign, "From Ad Group": h.adGroup, Source: h.source,
-    Orders: h.orders, Sales: money(h.sales), ACOS: +(h.acos).toFixed(4), "Start Bid": h.startBid, Why: h.why,
+    Orders: h.orders, Sales: money(h.sales), ACOS: +h.acos.toFixed(4), "Start Bid": h.startBid,
+    Reason: h.reason, Explanation: h.why,
   }))), "Keyword Harvest");
   XLSX.writeFile(wb, "ppc-recommendations.xlsx");
 }
@@ -929,8 +1202,7 @@ function downloadUpdatedBulk(res) {
   if (!bulk) return;
   const changed = res.bids.filter(b => b.rowIndex !== undefined && Math.abs(b.newBid - b.currentBid) >= 0.01);
   if (!changed.length) return;
-  const opCol = bulk.mapping.operation;
-  const bidCol = bulk.mapping.bid;
+  const opCol = bulk.mapping.operation, bidCol = bulk.mapping.bid;
   const out = [bulk.headers];
   for (const b of changed) {
     const row = [...(bulk.grid[b.rowIndex] || [])];
@@ -949,12 +1221,11 @@ function setStatus(msg, isError) {
   el.textContent = msg;
   el.classList.toggle("error", !!isError);
 }
-
 function refreshAnalyzeState() {
   document.getElementById("analyze").disabled = !(state.bulk || state.str);
 }
 
-function wireDropzone(dzId, inputId, fileLabelId, onFile) {
+function wireDropzone(dzId, inputId, fileLabelId) {
   const dz = document.getElementById(dzId);
   const input = document.getElementById(inputId);
   const open = () => input.click();
@@ -970,11 +1241,12 @@ function wireDropzone(dzId, inputId, fileLabelId, onFile) {
 
   async function handle(file) {
     try {
+      setStatus(`Reading ${file.name}…`);
       const buf = await file.arrayBuffer();
       const workbook = XLSX.read(buf, { type: "array" });
-      const summary = onFile(workbook, file.name);
+      const summary = ingestWorkbook(workbook, file.name);
       dz.classList.add("loaded");
-      document.getElementById(fileLabelId).textContent = `${file.name} — ${summary}`;
+      document.getElementById(fileLabelId).textContent = `${file.name} — found ${summary}`;
       setStatus("Ready — hit Analyze.");
     } catch (err) {
       dz.classList.remove("loaded");
@@ -1006,20 +1278,18 @@ function init() {
   }
   modeAcos.addEventListener("click", () => setMode("ACOS"));
   modeRoas.addEventListener("click", () => setMode("ROAS"));
-  targetInput.addEventListener("input", () => { renderTargetHint(); });
+
+  const sensSel = document.getElementById("sensitivity");
+  sensSel.addEventListener("change", () => {
+    state.sensitivity = sensSel.value;
+    if (state.results) analyze();
+  });
+  targetInput.addEventListener("input", renderTargetHint);
   targetInput.addEventListener("change", () => { if (state.results) analyze(); });
   renderTargetHint();
 
-  wireDropzone("dz-bulk", "file-bulk", "dz-bulk-file", (wb, name) => {
-    const parsed = parseBulkSheet(wb);
-    state.bulk = { fileName: name, ...parsed };
-    return `${parsed.keywords.length} keywords/targets` + (parsed.hasPerf ? "" : " (no performance data)");
-  });
-  wireDropzone("dz-str", "file-str", "dz-str-file", (wb, name) => {
-    const rows = parseSearchTermReport(wb);
-    state.str = { fileName: name, rows };
-    return `${rows.length} search term rows`;
-  });
+  wireDropzone("dz-a", "file-a", "dz-a-file");
+  wireDropzone("dz-b", "file-b", "dz-b-file");
 
   document.getElementById("analyze").addEventListener("click", analyze);
   document.getElementById("dl-workbook").addEventListener("click", () => state.results && downloadWorkbook(state.results));
@@ -1028,6 +1298,7 @@ function init() {
 
 function analyze() {
   try {
+    state.expanded.clear();
     const res = computeResults();
     state.results = res;
     document.getElementById("results").hidden = false;
@@ -1045,5 +1316,292 @@ function analyze() {
   }
 }
 
-init();
+/* ---------------- login gate ----------------
+   The password is stored only as a salted SHA-256 hash, so it isn't readable
+   in this file. To change it: open the page, press F12 for the console, run
+     newPasswordHash("your new password")
+   and paste the printed value over PASSWORD_HASH below.
+
+   Be clear-eyed about what this is. Everything here runs in the visitor's
+   browser, so a determined person can read this file and walk past the gate.
+   It keeps a shared link private; it is not protection for secrets. Nothing
+   you upload is stored behind it — files are read in memory and never sent. */
+const PASSWORD_HASH = "1704386914b4b6bb83ead303d77c28d36dd2153015a2255af13e32ef25df3150";
+
+/* Admin password, hashed the same way but with an "admin:" salt.
+   Change it with newAdminHash("your new admin password") in the console. */
+const ADMIN_HASH = "63f9f916337358fcf3f9ac12c49b717c40bb25b4c6fd54cb4f5dd7c6768057d4";
+
+/* Signing key for access codes. Anyone holding this can mint codes, so change
+   it if you ever hand the file to someone who shouldn't issue access. Changing
+   it invalidates every code already issued. */
+const ACCESS_SECRET = "b77f3dfb3b800bbafba8e80f62c4de22e7daa6ef97e0e9f6";
+
+/* Signatures of codes cut off early. The admin panel writes this line for you. */
+const REVOKED = [];
+
+const GATE_KEY = "ppcopt.unlocked";
+const ISSUED_KEY = "ppcopt.issued";
+
+async function hashPassword(pw) {
+  const bytes = new TextEncoder().encode("ppcopt:" + pw);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+window.newPasswordHash = async pw => {
+  const h = await hashPassword(pw);
+  console.log("Paste this as PASSWORD_HASH:\n" + h);
+  return h;
+};
+window.newAdminHash = async pw => {
+  const bytes = new TextEncoder().encode("ppcopt:admin:" + pw);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const h = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+  console.log("Paste this as ADMIN_HASH:\n" + h);
+  return h;
+};
+
+/* ---------------- access codes ----------------
+   A code is  name-YYMMDD-signature  where the signature is an HMAC of the
+   name and expiry under ACCESS_SECRET. Because the signature can only be
+   produced with the secret, a code can be checked offline without storing
+   any list of users — which is what lets this work with no server. */
+
+function slugName(name) {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 12);
+}
+function compactDate(iso) { return iso.replace(/-/g, "").slice(2); } // 2026-08-31 -> 260831
+function expandDate(compact) {
+  return `20${compact.slice(0, 2)}-${compact.slice(2, 4)}-${compact.slice(4, 6)}`;
+}
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+async function signAccess(slug, compact) {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(ACCESS_SECRET),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${slug}|${compact}`));
+  return [...new Uint8Array(mac)].slice(0, 4).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function makeAccessCode(name, expiryIso) {
+  const slug = slugName(name);
+  const compact = compactDate(expiryIso);
+  return `${slug}-${compact}-${await signAccess(slug, compact)}`;
+}
+
+/** Returns {ok:true, name, expiry} or {ok:false, reason}. */
+async function checkAccessCode(raw) {
+  const code = raw.trim().toLowerCase();
+  const parts = code.split("-");
+  if (parts.length !== 3) return { ok: false, reason: "format" };
+  const [slug, compact, sig] = parts;
+  if (!/^\d{6}$/.test(compact)) return { ok: false, reason: "format" };
+  if (await signAccess(slug, compact) !== sig) return { ok: false, reason: "bad" };
+  if (REVOKED.includes(sig)) return { ok: false, reason: "revoked" };
+  const expiry = expandDate(compact);
+  if (expiry < todayIso()) return { ok: false, reason: "expired", expiry };
+  return { ok: true, name: slug, expiry };
+}
+
+let dashboardStarted = false;
+function openDashboard() {
+  document.getElementById("gate").hidden = true;
+  document.getElementById("app").hidden = false;
+  if (!dashboardStarted) { dashboardStarted = true; init(); }
+}
+
+function readStore(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+function writeStore(key, value) {
+  try { localStorage.setItem(key, value); } catch (e) { /* private mode */ }
+}
+
+function initGate() {
+  const form = document.getElementById("gate-form");
+  const pwInput = document.getElementById("gate-pw");
+  const err = document.getElementById("gate-error");
+  const remember = document.getElementById("gate-remember");
+
+  document.getElementById("logout").addEventListener("click", () => {
+    try { localStorage.removeItem(GATE_KEY); } catch (e) { /* private mode */ }
+    location.reload();
+  });
+
+  document.getElementById("admin-link").addEventListener("click", async () => {
+    err.textContent = "";
+    const typed = pwInput.value;
+    if (!typed) {
+      err.textContent = "Type the admin password above, then click Admin.";
+      pwInput.focus();
+      return;
+    }
+    const bytes = new TextEncoder().encode("ppcopt:admin:" + typed);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const hash = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+    if (hash !== ADMIN_HASH) {
+      err.textContent = "That isn't the admin password.";
+      pwInput.select();
+      return;
+    }
+    pwInput.value = "";
+    document.getElementById("gate").hidden = true;
+    document.getElementById("admin").hidden = false;
+  });
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    err.textContent = "";
+    const typed = pwInput.value;
+
+    let hash;
+    try {
+      hash = await hashPassword(typed);
+    } catch (e) {
+      err.textContent = "This browser can't check the password. Try Chrome or Edge.";
+      return;
+    }
+    if (hash === PASSWORD_HASH) {
+      if (remember.checked) writeStore(GATE_KEY, hash);
+      openDashboard();
+      return;
+    }
+
+    const check = await checkAccessCode(typed);
+    if (check.ok) {
+      if (remember.checked) writeStore(GATE_KEY, "code:" + typed.trim().toLowerCase());
+      openDashboard();
+      return;
+    }
+    if (check.reason === "expired") {
+      err.textContent = `That code expired on ${check.expiry}. Ask for a new one.`;
+    } else if (check.reason === "revoked") {
+      err.textContent = "That code has been cancelled.";
+    } else {
+      err.textContent = "That password or code isn't right. Try again.";
+    }
+    pwInput.select();
+  });
+
+  const stored = readStore(GATE_KEY);
+  if (stored === PASSWORD_HASH) {
+    openDashboard();
+  } else if (stored && stored.startsWith("code:")) {
+    // Re-check every load so an expired or cancelled code stops working
+    // even on a device that ticked "keep me signed in".
+    checkAccessCode(stored.slice(5)).then(res => {
+      if (res.ok) openDashboard();
+      else try { localStorage.removeItem(GATE_KEY); } catch (e) { /* private mode */ }
+    });
+  }
+}
+
+/* ---------------- admin panel ---------------- */
+function loadIssued() {
+  try { return JSON.parse(readStore(ISSUED_KEY) || "[]"); } catch (e) { return []; }
+}
+function saveIssued(list) { writeStore(ISSUED_KEY, JSON.stringify(list)); }
+
+function renderIssued() {
+  const wrap = document.getElementById("issued-wrap");
+  const list = loadIssued();
+  if (!list.length) {
+    wrap.innerHTML = `<p class="issued-empty">No codes issued yet.</p>`;
+    return;
+  }
+  const today = todayIso();
+  wrap.innerHTML = `<table class="issued-table">
+    <thead><tr><th>Person</th><th>Code</th><th>Works until</th><th>Status</th><th></th></tr></thead>
+    <tbody>${list.map((it, i) => {
+      const sig = it.code.split("-")[2];
+      const revoked = REVOKED.includes(sig);
+      const expired = it.expiry < today;
+      const status = revoked ? `<span class="chip crit">cancelled</span>`
+        : expired ? `<span class="chip flat">expired</span>`
+        : `<span class="chip good">active</span>`;
+      return `<tr>
+        <td>${esc(it.name)}</td>
+        <td class="code">${esc(it.code)}</td>
+        <td>${esc(it.expiry)}</td>
+        <td>${status}</td>
+        <td><button type="button" class="link-btn" data-revoke="${i}">${revoked ? "Remove" : "Cancel"}</button></td>
+      </tr>`;
+    }).join("")}</tbody></table>`;
+
+  wrap.querySelectorAll("[data-revoke]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const item = loadIssued()[+btn.dataset.revoke];
+      if (!item) return;
+      const sig = item.code.split("-")[2];
+      const box = document.getElementById("revoke-box");
+      const sigs = [...new Set([...REVOKED, sig])];
+      document.getElementById("revoke-line").textContent =
+        `const REVOKED = [${sigs.map(s => `"${s}"`).join(", ")}];`;
+      box.hidden = false;
+      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  });
+}
+
+function initAdmin() {
+  const form = document.getElementById("issue-form");
+  const nameInput = document.getElementById("issue-name");
+  const expiryInput = document.getElementById("issue-expiry");
+  const err = document.getElementById("issue-error");
+
+  const in90 = new Date(Date.now() + 90 * 864e5);
+  expiryInput.value = `${in90.getFullYear()}-${String(in90.getMonth() + 1).padStart(2, "0")}-${String(in90.getDate()).padStart(2, "0")}`;
+  expiryInput.min = todayIso();
+
+  document.getElementById("admin-exit").addEventListener("click", () => {
+    document.getElementById("admin").hidden = true;
+    document.getElementById("gate").hidden = false;
+  });
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    err.textContent = "";
+    const name = nameInput.value.trim();
+    if (slugName(name).length < 2) {
+      err.textContent = "Give the person a name of at least two letters or digits.";
+      return;
+    }
+    if (expiryInput.value < todayIso()) {
+      err.textContent = "Pick an expiry date in the future.";
+      return;
+    }
+    const code = await makeAccessCode(name, expiryInput.value);
+    document.getElementById("code-for").textContent = name;
+    document.getElementById("code-until").textContent = expiryInput.value;
+    document.getElementById("code-text").textContent = code;
+    document.getElementById("code-out").hidden = false;
+
+    const list = loadIssued().filter(it => it.code !== code);
+    list.unshift({ name, code, expiry: expiryInput.value, issued: todayIso() });
+    saveIssued(list);
+    renderIssued();
+    nameInput.value = "";
+  });
+
+  document.getElementById("code-copy").addEventListener("click", async () => {
+    const btn = document.getElementById("code-copy");
+    try {
+      await navigator.clipboard.writeText(document.getElementById("code-text").textContent);
+      btn.textContent = "Copied";
+      setTimeout(() => { btn.textContent = "Copy"; }, 1600);
+    } catch (e) {
+      btn.textContent = "Select it manually";
+    }
+  });
+
+  renderIssued();
+}
+
+initGate();
+initAdmin();
 </script>
