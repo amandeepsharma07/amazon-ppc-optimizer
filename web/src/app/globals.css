@@ -253,3 +253,20 @@ td.ell { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
   background: var(--good-bg); color: var(--good);
   font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: none;
 }
+
+.word-toggle {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--line); border-radius: 99px;
+  padding: 5px 12px; font: inherit; font-size: 13.5px; cursor: pointer;
+  background: var(--surface); color: var(--muted);
+}
+.word-toggle:hover { background: var(--surface-2); }
+.word-toggle .word-state {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .03em;
+  padding: 1px 6px; border-radius: 99px;
+  background: var(--surface-2); color: var(--muted);
+}
+.word-toggle.keeping {
+  border-color: var(--good); color: var(--ink); background: var(--good-bg);
+}
+.word-toggle.keeping .word-state { background: var(--good); color: var(--surface); }

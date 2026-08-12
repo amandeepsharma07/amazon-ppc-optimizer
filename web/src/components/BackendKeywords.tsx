@@ -27,10 +27,13 @@ export default function BackendKeywords() {
   const [campaigns, setCampaigns] = useState<CampaignSource[]>([]);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [excludeWords, setExcludeWords] = useState("");
-  // Both fields fill themselves from the report; these note that so the
-  // interface can say where the contents came from.
   const [autoBrands, setAutoBrands] = useState(false);
-  const [autoExclude, setAutoExclude] = useState(false);
+  /* Words the report suggests belong to another product, and the ones the
+     seller has overruled. Suggestions are shown, never silently applied: a
+     school bag really can be "casual", carry a "rain cover" and be a "sport"
+     bag, so only the seller can settle it. */
+  const [offTopic, setOffTopic] = useState<string[]>([]);
+  const [kept, setKept] = useState<Set<string>>(new Set());
 
   const defaultLimit = byteLimitFor(marketplace.code);
 
@@ -73,20 +76,20 @@ export default function BackendKeywords() {
      recomputed whenever that changes rather than only on upload. */
   useEffect(() => {
     if (!rows || chosen.size === 0 || chosen.size === campaigns.length) {
-      if (autoExclude) { setExcludeWords(""); setAutoExclude(false); }
+      setOffTopic([]);
       return;
     }
-    const off = detectOffTopic(rows, chosen);
-    setExcludeWords(off.join(", "));
-    setAutoExclude(off.length > 0);
-    // Deliberately not depending on excludeWords: this sets it, and reacting
-    // to its own writes would fight the seller's edits.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setOffTopic(detectOffTopic(rows, chosen));
+    setKept(new Set());
   }, [rows, chosen, campaigns.length]);
 
   const canGenerate = Boolean(rows && productType.trim());
 
-  function generate(allowList: Set<string> = allowed, campaignList: Set<string> = chosen) {
+  function generate(
+    allowList: Set<string> = allowed,
+    campaignList: Set<string> = chosen,
+    keepList: Set<string> = kept
+  ) {
     if (!rows) return;
     setError("");
     setCopied(false);
@@ -101,7 +104,7 @@ export default function BackendKeywords() {
       marketplace, title, brand, productType, description, competitorBrands,
       byteLimit: customLimit === "" ? undefined : Number(customLimit),
       allowedBrands: [...allowList],
-      excludeWords,
+      excludeWords: [...offTopic.filter(w => !keepList.has(w)), excludeWords].join(", "),
     });
     setResult(res);
     setStatus(
@@ -120,6 +123,14 @@ export default function BackendKeywords() {
       setError("Couldn't reach the clipboard — select the text below and copy it manually.");
     }
   }
+
+  /* A kept word still competes for space. Saying so beats letting the seller
+     click "keep" and wonder why nothing changed. */
+  const keptButNoRoom = useMemo(() => {
+    if (!result) return [];
+    const inField = new Set(result.included.map(w => w.word));
+    return [...kept].filter(w => !inField.has(w));
+  }, [result, kept]);
 
   const fillPct = useMemo(
     () => (result ? Math.min(100, (result.bytes / result.byteLimit) * 100) : 0),
@@ -236,13 +247,10 @@ export default function BackendKeywords() {
                 onChange={e => { setCompetitorBrands(e.target.value); setAutoBrands(false); }} />
             </div>
             <div>
-              <label className="field-label" htmlFor="bk-exclude">
-                Words that don&apos;t fit this product
-                {autoExclude && <span className="auto-tag">from your other campaigns</span>}
-              </label>
+              <label className="field-label" htmlFor="bk-exclude">Other words to leave out</label>
               <input id="bk-exclude" type="text" value={excludeWords}
-                placeholder="filled once you pick campaigns — edit if needed"
-                onChange={e => { setExcludeWords(e.target.value); setAutoExclude(false); }} />
+                placeholder="anything else, separated by commas"
+                onChange={e => setExcludeWords(e.target.value)} />
             </div>
             <div>
               <label className="field-label" htmlFor="bk-limit">
@@ -254,6 +262,43 @@ export default function BackendKeywords() {
             </div>
           </div>
         </div>
+
+        {offTopic.length > 0 && (
+          <div>
+            <h2 className="section">
+              Words that look like another product&apos;s
+              <span className="auto-tag">found automatically</span>
+            </h2>
+            <p className="hint">
+              These come mostly from campaigns you didn&apos;t pick, so they are set to be left
+              out. Click any that genuinely describe your product — a school bag can be
+              &ldquo;casual&rdquo;, carry a &ldquo;rain cover&rdquo; or be a &ldquo;sport&rdquo;
+              bag — and it goes back in.
+            </p>
+            <div className="brand-checks">
+              {offTopic.map(word => {
+                const keeping = kept.has(word);
+                return (
+                  <button
+                    type="button"
+                    key={word}
+                    className={`word-toggle${keeping ? " keeping" : ""}`}
+                    aria-pressed={keeping}
+                    onClick={() => {
+                      const next = new Set(kept);
+                      if (keeping) next.delete(word); else next.add(word);
+                      setKept(next);
+                      if (result) generate(allowed, chosen, next);
+                    }}
+                  >
+                    {word}
+                    <span className="word-state">{keeping ? "keeping" : "left out"}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
           <button className="btn" onClick={() => generate()} disabled={!canGenerate}>
@@ -288,6 +333,14 @@ export default function BackendKeywords() {
               {result.included.length} words from {result.sourceTerms.toLocaleString()} customer
               searches. Word order doesn&apos;t matter — Amazon matches any combination.
             </p>
+            {keptButNoRoom.length > 0 && (
+              <p className="hint" style={{ margin: "8px 0 0", color: "var(--warn)" }}>
+                <strong>{keptButNoRoom.join(", ")}</strong>{" "}
+                {keptButNoRoom.length === 1 ? "was kept but didn't fit" : "were kept but didn't fit"} —
+                the field is full at {result.byteLimit} bytes and higher-earning words took the
+                space. Leave out a word from the list below to make room.
+              </p>
+            )}
           </section>
 
           {(result.heldBack.length > 0 || allowed.size > 0) && (
