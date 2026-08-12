@@ -133,8 +133,33 @@ debugging three steps later.
 | `web/` | The multi-user web app — the thing Vercel deploys |
 | `dashboard/index.html` | The standalone single file. No server, no database; double-click to open |
 | `ppcopt/` | The Python command-line version |
+| `extension/` | The Chrome extension that audits listings on the Amazon page itself |
 | `examples/` | Sample bulk and search term files for testing |
 | `web/.env.local` | Your database connection. **Never committed** — deliberately in `.gitignore` |
 
-All three share the same optimisation rules, so a change to how bids or
+The first three share the same optimisation rules, so a change to how bids or
 keywords are calculated benefits every version.
+
+---
+
+## Part 4 — The Chrome extension
+
+It is not deployed anywhere; it is loaded from the folder on your PC. Once,
+after your first `git pull`:
+
+1. Open **`chrome://extensions`**
+2. Turn on **Developer mode**, top right
+3. **Load unpacked** → choose
+   `C:\Users\hp\Documents\GitHub\amazon-ppc-optimizer\extension`
+
+Then open any Amazon product page and the panel appears on the right.
+
+After a `git pull` that changed it, press the **reload arrow** on its card in
+`chrome://extensions` and refresh the Amazon tab. That step is easy to forget
+and looks exactly like the extension being broken.
+
+| What you see | What to do |
+|---|---|
+| No panel on a product page | Reload the extension's card, then refresh the tab |
+| "6 checks could not be read" | Scroll the whole page so everything loads, press **Re-run** |
+| Panel on a search or category page | It only runs on product pages — the ones with `/dp/` in the address |

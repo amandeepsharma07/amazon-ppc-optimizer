@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Listing Audit</title>
+<style>
+  :root { color-scheme: light; }
+  body {
+    margin: 0; width: 300px; font: 13px/1.5 Arial, Helvetica, sans-serif;
+    color: #0f1111; background: #fff;
+  }
+  header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid #eaeded; }
+  .ring {
+    --pct: 0; --tone: #565959;
+    width: 44px; height: 44px; border-radius: 50%; flex: none; position: relative;
+    background: conic-gradient(var(--tone) calc(var(--pct) * 1%), #eaeded 0);
+    display: grid; place-items: center;
+  }
+  .ring::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: #fff; }
+  .ring b { position: relative; z-index: 1; font-size: 14px; }
+  header h1 { margin: 0; font-size: 13px; }
+  header p { margin: 2px 0 0; font-size: 11px; color: #565959; }
+  section { padding: 12px 14px; }
+  button {
+    width: 100%; padding: 8px; font-size: 13px; cursor: pointer;
+    border: 1px solid #fcd200; background: #ffd814; border-radius: 8px;
+  }
+  button:hover { background: #f7ca00; }
+  button:disabled { background: #f2f4f4; border-color: #d5d9d9; color: #888; cursor: default; }
+  label.row { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; }
+  label.row input[type="number"] { width: 70px; padding: 3px 5px; }
+  .note { margin: 10px 0 0; font-size: 11px; color: #565959; }
+  .bad { color: #c7511f; }
+  footer { padding: 10px 14px; border-top: 1px solid #eaeded; font-size: 11px; color: #565959; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="ring" id="ring"><b id="score">—</b></div>
+    <div>
+      <h1 id="headline">No listing audited</h1>
+      <p id="sub">Open an Amazon product page</p>
+    </div>
+  </header>
+
+  <section>
+    <button id="run" disabled>Audit this page</button>
+    <p class="note" id="status"></p>
+
+    <label class="row">
+      <input type="checkbox" id="autoOpen">
+      Open the panel automatically on every product page
+    </label>
+
+    <label class="row">
+      <input type="number" id="titleLimit" min="0" max="500" step="1" placeholder="auto">
+      Title character limit
+    </label>
+    <p class="note">
+      Leave blank for the marketplace default (200 characters, 128 in Japan).
+      Some categories are stricter — the figure is on the listing's edit page in
+      Seller Central.
+    </p>
+  </section>
+
+  <footer>Reads only the page you are on. Nothing is uploaded anywhere.</footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

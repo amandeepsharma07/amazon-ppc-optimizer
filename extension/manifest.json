@@ -1,0 +1,76 @@
+{
+  "manifest_version": 3,
+  "name": "Listing Audit for Amazon Sellers",
+  "version": "1.0.0",
+  "description": "Scores the Amazon product page you are on against Amazon's listing rules and shows the fixes, in order, on the page itself.",
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "Listing Audit",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.amazon.com/*",
+        "*://*.amazon.in/*",
+        "*://*.amazon.ca/*",
+        "*://*.amazon.com.mx/*",
+        "*://*.amazon.com.br/*",
+        "*://*.amazon.co.uk/*",
+        "*://*.amazon.de/*",
+        "*://*.amazon.fr/*",
+        "*://*.amazon.it/*",
+        "*://*.amazon.es/*",
+        "*://*.amazon.nl/*",
+        "*://*.amazon.se/*",
+        "*://*.amazon.pl/*",
+        "*://*.amazon.com.tr/*",
+        "*://*.amazon.ae/*",
+        "*://*.amazon.sa/*",
+        "*://*.amazon.sg/*",
+        "*://*.amazon.com.au/*",
+        "*://*.amazon.co.jp/*"
+      ],
+      "js": ["src/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/audit.js", "src/scrape.js", "src/panel.js"],
+      "matches": [
+        "*://*.amazon.com/*",
+        "*://*.amazon.in/*",
+        "*://*.amazon.ca/*",
+        "*://*.amazon.com.mx/*",
+        "*://*.amazon.com.br/*",
+        "*://*.amazon.co.uk/*",
+        "*://*.amazon.de/*",
+        "*://*.amazon.fr/*",
+        "*://*.amazon.it/*",
+        "*://*.amazon.es/*",
+        "*://*.amazon.nl/*",
+        "*://*.amazon.se/*",
+        "*://*.amazon.pl/*",
+        "*://*.amazon.com.tr/*",
+        "*://*.amazon.ae/*",
+        "*://*.amazon.sa/*",
+        "*://*.amazon.sg/*",
+        "*://*.amazon.com.au/*",
+        "*://*.amazon.co.jp/*"
+      ]
+    }
+  ]
+}

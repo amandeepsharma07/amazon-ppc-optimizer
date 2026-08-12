@@ -1,7 +1,7 @@
 # Amazon PPC Optimizer
 
-Three ways to use one engine: turn the reports you download from Amazon Ads into concrete
-optimization actions — no API credentials required.
+Turn the reports you download from Amazon Ads into concrete optimization actions, and
+audit the listings that traffic lands on — no API credentials required.
 
 1. **Web app** (`web/`) — the full version: real accounts an admin creates and revokes,
    a history of every run, and a team page. Deploys to Vercel with a Postgres database;
@@ -16,9 +16,15 @@ optimization actions — no API credentials required.
    also produces a ready-to-upload **bid-update bulk file**. Sample files to try it
    with are in `examples/`.
 3. **CLI** (`ppcopt`) — the same engine as a scriptable command-line tool, below.
+4. **Chrome extension** (`extension/`) — a different job: it scores the Amazon
+   product page you are looking at out of 100 against Amazon's listing rules and
+   shows the fixes, in order, on the page itself. Works on any listing you can
+   open, yours or a competitor's. See [`extension/README.md`](extension/README.md).
 
-All three share the same optimisation rules. Start with the single file; move to the
-web app when you need to grant and revoke access to other people.
+The first three share the same optimisation rules. Start with the single file; move to
+the web app when you need to grant and revoke access to other people. The extension
+answers the other half of the question: the reports tell you which words shoppers use,
+the extension tells you what is wrong with the page they land on.
 
 ## Working on this project
 
