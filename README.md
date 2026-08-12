@@ -20,6 +20,11 @@ optimization actions — no API credentials required.
 All three share the same optimisation rules. Start with the single file; move to the
 web app when you need to grant and revoke access to other people.
 
+## Working on this project
+
+Setup, the day-to-day routine, and the errors worth recognising:
+**[WORKFLOW.md](WORKFLOW.md)**.
+
 ## The CLI
 
 A command-line tool that turns an **Amazon Ads search term report** into concrete
