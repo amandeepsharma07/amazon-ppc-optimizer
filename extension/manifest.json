@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Listing Audit for Amazon Sellers",
   "version": "1.0.0",
-  "description": "Scores the Amazon product page you are on against Amazon's listing rules and shows the fixes, in order, on the page itself.",
+  "description": "Scores the Amazon product page you are on against Amazon's listing rules, proposes the rebuild, and exports the products any Amazon page is showing.",
   "permissions": [
     "storage"
   ],
@@ -57,7 +57,8 @@
         "src/audit.js",
         "src/scrape.js",
         "src/panel.js",
-        "src/suggest.js"
+        "src/suggest.js",
+        "src/extract.js"
       ],
       "matches": [
         "*://*.amazon.com/*",

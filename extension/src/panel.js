@@ -11,6 +11,7 @@
  * text from a third party — assembling it as markup would be the one way this
  * extension could hurt the page it is inspecting.
  */
+import { rowsToAsinList, rowsToCsv, rowsToTsv } from "./extract.js";
 
 const CSS = `
 :host { all: initial; }
@@ -139,6 +140,19 @@ ol.slots > li:last-child { border-bottom: 0; }
 .slotbody { margin: 5px 0 0 25px; }
 .slotbody .txt { font-size: 12.5px; word-break: break-word; }
 .slotbody .txt em { font-style: normal; font-weight: 700; }
+
+.tablewrap { overflow-x: auto; border: 1px solid #eaeded; border-radius: 8px; margin: 4px 0 10px; }
+table.grid { border-collapse: collapse; width: 100%; font-size: 11.5px; }
+table.grid th, table.grid td { padding: 5px 7px; text-align: left; white-space: nowrap; border-bottom: 1px solid #f2f4f4; }
+table.grid th { background: #f7fafa; font-weight: 700; position: sticky; top: 0; }
+table.grid tr:last-child td { border-bottom: 0; }
+table.grid td.wide { max-width: 210px; overflow: hidden; text-overflow: ellipsis; }
+table.grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.grid tr.sp td { background: #fffaf3; }
+.spdot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #c7511f; margin-right: 5px; }
+.stat { display: flex; gap: 14px; margin: 8px 0 2px; }
+.stat div { font-size: 11px; color: #565959; }
+.stat b { display: block; font-size: 15px; color: #0f1111; font-variant-numeric: tabular-nums; }
 
 .badge {
   display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
@@ -288,14 +302,94 @@ function slotRow(slot) {
   );
 }
 
+/** The product table, its context, and the ways to get it out. */
+function renderProducts(view, extraction) {
+  const { rows, context, counts } = extraction;
+
+  view.append(h("div", { class: "stat" },
+    h("div", {}, h("b", { text: String(counts.total) }), "products"),
+    h("div", {}, h("b", { text: String(counts.sponsored) }), "sponsored"),
+    h("div", {}, h("b", {
+      text: (() => {
+        const rated = rows.filter(r => r.rating !== null);
+        return rated.length ? (rated.reduce((s, r) => s + r.rating, 0) / rated.length).toFixed(1) : "—";
+      })(),
+    }), "mean rating"),
+    h("div", {}, h("b", {
+      text: (() => {
+        const priced = rows.filter(r => r.priceValue !== null).map(r => r.priceValue).sort((a, b) => a - b);
+        if (!priced.length) return "—";
+        const mid = priced[Math.floor(priced.length / 2)];
+        return mid >= 1000 ? Math.round(mid).toLocaleString() : String(mid);
+      })(),
+    }), "median price"),
+  ));
+
+  if (!rows.length) {
+    view.append(h("p", { class: "muted", text: "No products found on this page. On a search or category page, scroll down so the results load, then press Re-scan." }));
+    return;
+  }
+
+  const table = h("table", { class: "grid" },
+    h("tr", {},
+      h("th", { text: "#" }), h("th", { text: "ASIN" }), h("th", { text: "Title" }),
+      h("th", { text: "Price" }), h("th", { text: "Rating" }), h("th", { text: "Reviews" }),
+    ),
+    ...rows.map(r => h("tr", { class: r.sponsored ? "sp" : "" },
+      h("td", { class: "num", text: String(r.position) }),
+      h("td", {}, r.sponsored ? h("span", { class: "spdot", title: "Sponsored" }) : null, r.asin),
+      h("td", { class: "wide", title: r.title || "", text: r.title || "—" }),
+      h("td", { class: "num", text: r.price || "—" }),
+      h("td", { class: "num", text: r.rating === null ? "—" : r.rating.toFixed(1) }),
+      h("td", { class: "num", text: r.reviews === null ? "—" : r.reviews.toLocaleString() }),
+    )),
+  );
+  view.append(h("div", { class: "tablewrap" }, table));
+
+  view.append(h("div", { class: "rowbtns" },
+    copyButton("Copy for Excel", () => rowsToTsv(rows), "act primary"),
+    copyButton("CSV", () => rowsToCsv(rows)),
+    copyButton("ASINs only", () => rowsToAsinList(rows)),
+  ));
+  view.append(h("p", { class: "muted", text: "\"Copy for Excel\" is tab-separated — paste it straight into a sheet and it lands in columns. Twelve columns are copied, including sponsored, badge, browse node and URL; the table above shows six to stay readable." }));
+
+  view.append(h("h3", { class: "sec", text: "Where this came from" }));
+  const node = context.browseNode;
+  view.append(h("ul", { class: "areas" },
+    h("li", {},
+      h("div", { class: "areahead" }, h("strong", { text: "Browse node" })),
+      h("p", { class: "headroom", text: node ? [node.id, node.path].filter(Boolean).join(" · ") : "None stated on this page" }),
+      h("p", {
+        class: "detail",
+        text: node
+          ? `Read from the ${node.source}. It is the node for this page, so every row carries the same one — a result card does not state its own. Getting a node per ASIN means opening each listing, which is the request volume that gets an IP throttled, so it is deliberately not done.`
+          : "This page states no node in its URL or breadcrumb. Category and search pages usually do.",
+      }),
+    ),
+    h("li", {},
+      h("div", { class: "areahead" }, h("strong", { text: "Page" })),
+      h("p", { class: "headroom", text: `${context.pageType}${context.searchTerm ? ` for "${context.searchTerm}"` : ""}` }),
+      h("p", { class: "detail", text: `${context.marketplace}. Only what was rendered when you pressed the button — Amazon loads results as you scroll, so scroll to the bottom first for a full page of them.` }),
+    ),
+  ));
+
+  if (counts.withoutTitle) {
+    view.append(h("div", {
+      class: "alert info",
+      text: `${counts.withoutTitle} row${counts.withoutTitle > 1 ? "s" : ""} came back without a title — usually a card that had not finished rendering. Scroll it into view and press Re-scan.`,
+    }));
+  }
+}
+
 /**
- * @param report       output of auditListing
- * @param listing      the scrape it was built from
- * @param suggestions  output of buildSuggestions
- * @param handlers     { onCopy, onRerun, onClose, onCollapse }
+ * @param content   { report, listing, suggestions, extraction } — report,
+ *                  listing and suggestions are null on a page that is not a
+ *                  product page, where only the extractor applies
+ * @param handlers  { onCopy, onRerun, onClose, onCollapse }
  * @returns the host element, already attached to the document
  */
-export function renderPanel(report, listing, suggestions, handlers = {}) {
+export function renderPanel(content, handlers = {}) {
+  const { report, listing, suggestions, extraction } = content;
   document.getElementById("ppc-listing-audit-host")?.remove();
 
   const host = h("div", { id: "ppc-listing-audit-host" });
@@ -305,12 +399,17 @@ export function renderPanel(report, listing, suggestions, handlers = {}) {
   const root = host.attachShadow({ mode: "open" });
   root.append(h("style", { text: CSS }));
 
-  const tone = toneFor(report.score);
   const body = h("div", { class: "body" });
   const panel = h("div", { class: "panel" });
 
-  const ring = h("div", { class: "ring", style: `--pct:${report.score ?? 0};--tone:${tone}` },
-    h("b", { text: report.score === null ? "?" : String(report.score) }));
+  // On a product page the headline is the score; everywhere else it is the
+  // number of products the page turned out to be showing.
+  const headlineNumber = report ? report.score : extraction?.counts.total ?? 0;
+  const ring = report
+    ? h("div", { class: "ring", style: `--pct:${report.score ?? 0};--tone:${toneFor(report.score)}` },
+      h("b", { text: report.score === null ? "?" : String(report.score) }))
+    : h("div", { class: "ring", style: "--pct:100;--tone:#24506b" },
+      h("b", { text: String(headlineNumber) }));
 
   const collapseBtn = h("button", {
     class: "iconbtn", title: "Collapse", text: "–",
@@ -325,9 +424,16 @@ export function renderPanel(report, listing, suggestions, handlers = {}) {
     h("div", { class: "head" },
       ring,
       h("div", { class: "headline" },
-        h("h2", { text: `Listing score ${report.score ?? "—"}/100 · ${report.grade ?? "—"}` }),
+        h("h2", {
+          text: report
+            ? `Listing score ${report.score ?? "—"}/100 · ${report.grade ?? "—"}`
+            : `${headlineNumber} product${headlineNumber === 1 ? "" : "s"} on this page`,
+        }),
         h("p", {
-          text: [listing.asin, report.marketplace?.label, listing.brand].filter(Boolean).join(" · ") || "Listing audit",
+          text: report
+            ? ([listing.asin, report.marketplace?.label, listing.brand].filter(Boolean).join(" · ") || "Listing audit")
+            : ([extraction?.context.pageType, extraction?.context.searchTerm && `"${extraction.context.searchTerm}"`,
+              extraction?.context.browseNode?.path].filter(Boolean).join(" · ") || "Product extractor"),
         }),
       ),
       collapseBtn,
@@ -336,15 +442,19 @@ export function renderPanel(report, listing, suggestions, handlers = {}) {
     body,
   );
 
-  /* The panel answers two different questions and they do not belong in one
-     scroll: what is wrong with the listing, and what to write instead. */
+  /* The panel answers questions that do not belong in one scroll: what is
+     wrong with this listing, what to write instead, and what else is on the
+     page. Only the views with something behind them are offered. */
   const audit = h("div");
   const rebuild = h("div", { style: "display:none" });
+  const products = h("div", { style: "display:none" });
   const tabs = h("div", { class: "tabs" });
-  const views = [
-    { label: "What's wrong", view: audit },
-    { label: "What to write", view: rebuild },
-  ];
+  const views = [];
+  if (report) views.push({ label: "What's wrong", view: audit });
+  if (suggestions) views.push({ label: "What to write", view: rebuild });
+  if (extraction) views.push({ label: `Products (${extraction.counts.total})`, view: products });
+
+  views[0].view.style.display = "";
   const buttons = views.map((entry, i) => h("button", {
     class: "tab", role: "tab", "aria-selected": i === 0 ? "true" : "false", text: entry.label,
     onclick: () => {
@@ -355,8 +465,17 @@ export function renderPanel(report, listing, suggestions, handlers = {}) {
       body.scrollTop = 0;
     },
   }));
-  tabs.append(...buttons);
-  body.append(tabs, audit, rebuild);
+  if (views.length > 1) tabs.append(...buttons);
+  body.append(tabs, ...views.map(v => v.view));
+
+  if (extraction) renderProducts(products, extraction);
+  if (!report) {
+    root.append(panel);
+    panel.append(h("div", { class: "foot" },
+      h("button", { class: "act", text: "Re-scan", onclick: () => handlers.onRerun?.() })));
+    document.body.append(host);
+    return host;
+  }
 
   /* ================= what's wrong ================= */
 

@@ -20,11 +20,12 @@ if (!window.__ppcListingAuditLoaded) {
   window.__ppcListingAuditLoaded = true;
 
   (async () => {
-    const [audit, scrape, panel, suggest] = await Promise.all([
+    const [audit, scrape, panel, suggest, extract] = await Promise.all([
       import(chrome.runtime.getURL("src/audit.js")),
       import(chrome.runtime.getURL("src/scrape.js")),
       import(chrome.runtime.getURL("src/panel.js")),
       import(chrome.runtime.getURL("src/suggest.js")),
+      import(chrome.runtime.getURL("src/extract.js")),
     ]);
 
     const DEFAULTS = { autoOpen: true, titleLimit: 0 };
@@ -55,18 +56,18 @@ if (!window.__ppcListingAuditLoaded) {
     }
 
     function copyReport() {
-      if (!current) return Promise.reject(new Error("nothing audited yet"));
+      if (!current?.report) return Promise.reject(new Error("nothing audited yet"));
       return navigator.clipboard.writeText(
         audit.reportToText(current.report, current.listing)
         + "\n" + suggest.suggestionsToText(current.suggestions)
       );
     }
 
-    function show(report, listing, suggestions) {
-      panel.renderPanel(report, listing, suggestions, {
+    function show(state) {
+      panel.renderPanel(state, {
         onCopy: copyReport,
-        onRerun: () => run({ open: true }),
-        onClose: () => panel.renderTitleBadge(report, () => show(report, listing, suggestions)),
+        onRerun: () => (state.report ? run({ open: true }) : refreshProducts({ open: true })),
+        onClose: () => { if (state.report) panel.renderTitleBadge(state.report, () => show(state)); },
         onCollapse: collapsed => chrome.storage.sync.set({ collapsed }),
       });
     }
@@ -78,34 +79,57 @@ if (!window.__ppcListingAuditLoaded) {
       const listing = scrape.scrapeListing();
       const report = audit.auditListing(listing, options);
       const suggestions = suggest.buildSuggestions(report, listing, options);
-      current = { listing, report, suggestions };
+      // The carousels down a product page are products too, so the extractor
+      // runs here as well — it just excludes the page's own ASIN.
+      const extraction = extract.extractProducts();
+      current = { listing, report, suggestions, extraction };
 
-      panel.renderTitleBadge(report, () => show(report, listing, suggestions));
-      if (open) show(report, listing, suggestions);
+      panel.renderTitleBadge(report, () => show(current));
+      if (open) show(current);
       return report;
     }
 
+    /**
+     * Re-reads the products on the page, keeping any audit already made.
+     * On a page with no listing to audit this is the whole of what runs.
+     */
+    function refreshProducts({ open }) {
+      const extraction = extract.extractProducts();
+      if (current?.report) current.extraction = extraction;
+      else current = { listing: null, report: null, suggestions: null, extraction };
+      if (open) show(current);
+      return extraction;
+    }
+
+    const summarise = () => current?.report && {
+      asin: current.report.asin, score: current.report.score, grade: current.report.grade,
+      policyFailures: current.report.policyFailures,
+      unreadable: current.report.unreadable.length,
+      marketplace: current.report.marketplace?.label ?? null,
+      products: current.extraction?.counts.total ?? 0,
+    };
+
     chrome.runtime.onMessage.addListener((message, _sender, respond) => {
       if (message?.type === "run-audit") {
-        run({ open: true }).then(report => respond({
-          ok: Boolean(report),
-          summary: report && {
-            asin: report.asin, score: report.score, grade: report.grade,
-            policyFailures: report.policyFailures, unreadable: report.unreadable.length,
-            marketplace: report.marketplace?.label ?? null,
-          },
-        })).catch(error => respond({ ok: false, error: String(error) }));
+        run({ open: true })
+          .then(report => respond({ ok: Boolean(report), summary: summarise() }))
+          .catch(error => respond({ ok: false, error: String(error) }));
         return true; // responding asynchronously
       }
-      if (message?.type === "get-summary") {
+      if (message?.type === "extract-products") {
+        const extraction = refreshProducts({ open: true });
+        respond({ ok: true, counts: extraction.counts, pageType: extraction.context.pageType });
+        return false;
+      }
+      /* The popup asks what page this is rather than reading tab.url, which
+         would cost a permission the extension deliberately does not hold. */
+      if (message?.type === "page-info") {
         respond({
-          ok: Boolean(current),
-          summary: current && {
-            asin: current.listing.asin, score: current.report.score, grade: current.report.grade,
-            policyFailures: current.report.policyFailures,
-            unreadable: current.report.unreadable.length,
-            marketplace: current.report.marketplace?.label ?? null,
-          },
+          ok: true,
+          isProduct: scrape.isProductPage(),
+          pageType: extract.pageType(),
+          summary: summarise(),
+          products: current?.extraction?.counts.total ?? null,
         });
         return false;
       }

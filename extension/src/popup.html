@@ -27,6 +27,9 @@
   }
   button:hover { background: #f7ca00; }
   button:disabled { background: #f2f4f4; border-color: #d5d9d9; color: #888; cursor: default; }
+  button.secondary { margin-top: 8px; background: #fff; border-color: #d5d9d9; }
+  button.secondary:hover { background: #f7fafa; }
+  button.secondary:disabled { background: #f2f4f4; }
   label.row { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; }
   label.row input[type="number"] { width: 70px; padding: 3px 5px; }
   .note { margin: 10px 0 0; font-size: 11px; color: #565959; }
@@ -45,6 +48,7 @@
 
   <section>
     <button id="run" disabled>Audit this page</button>
+    <button id="extract" class="secondary" disabled>Extract products on this page</button>
     <p class="note" id="status"></p>
 
     <label class="row">

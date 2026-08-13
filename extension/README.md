@@ -114,6 +114,47 @@ Click the toolbar icon:
   characters, 128 in Japan). Some categories are stricter; your listing's edit
   page in Seller Central shows the real figure.
 
+## Extracting the products on a page
+
+Works on any Amazon page showing products — search results, a category, a
+brand store, the carousels down a product page. Click the toolbar icon →
+**Extract products on this page**.
+
+You get a table of everything rendered, and three ways out:
+
+| Button | Format | For |
+|---|---|---|
+| **Copy for Excel** | Tab-separated, 12 columns | Paste straight into a sheet; it lands in columns |
+| **CSV** | Comma-separated, RFC-quoted | Anything that wants a `.csv` |
+| **ASINs only** | One per line | Pasting into another tool |
+
+Columns: position, ASIN, title, price (as shown and as a number), rating,
+reviews, sponsored, badge, browse node ID and path, URL. Sponsored placements
+are marked, and position is document order — the order the shopper sees them.
+
+Prices and ratings are parsed per marketplace, so `₹1,499`, `$24.99` and
+German `1.299,00 €` all come out as numbers you can sort. A review count is
+never mistaken for a rating: an empty cell is better in an export than a
+plausible wrong number, because nothing downstream would question it.
+
+### The browse node is per page, not per product
+
+The node shown is the one governing the page you are on — read from the URL
+where the URL states one, otherwise inferred from the breadcrumb, and the
+source is named either way. Every row repeats it.
+
+That is a real limit, not an oversight. A search result card does not state
+its own node; that lives on each product's own page. Collecting it per ASIN
+would mean opening every listing, which is exactly the request volume that
+gets an IP throttled — see below. If you need true per-ASIN nodes, open the
+handful you care about and read the panel on each.
+
+### It only sees what has loaded
+
+Amazon loads results as you scroll. The extractor reads what is rendered at
+the moment you press the button, so scroll to the bottom of the page first,
+then extract. It will not page through results for you, deliberately.
+
 ## Why this cannot get you rate-limited or blocked
 
 The extension **makes no network requests at all**. Not to Amazon, not
@@ -175,6 +216,7 @@ it, that tells you which words belong in it.
 manifest.json        permissions, matched domains
 src/audit.js         the engine: rules, weights, scoring, the title correction
 src/suggest.js       the proposals: work areas, title variants, bullet plan
+src/extract.js       the product table: cards, parsing, export formats
 src/scrape.js        reads the page — every field may return null
 src/panel.js         the injected panel, in a shadow root
 src/content.js       timing and plumbing only
@@ -182,10 +224,16 @@ src/popup.html/js    the toolbar popup
 tools/make-icons.mjs regenerates the icons
 ```
 
+The popup asks the content script what page it is on rather than reading
+`tab.url`, which would need the `tabs` or a host permission. `storage` stays
+the only permission the extension holds, and that is worth keeping.
+
 `audit.js` and `suggest.js` are pure — no DOM, no network, no `chrome.*` —
-which is why they can be unit-tested. Their tests live in
-`web/tests/listing-audit.test.ts` and `web/tests/listing-suggest.test.ts` and
-run with the rest of the suite:
+which is why they can be unit-tested. `extract.js` walks the DOM, so its
+parsing and export formats are unit-tested and its card-finding is exercised
+in a real browser against a fixture page. The tests live in
+`web/tests/listing-{audit,suggest,extract}.test.ts` and run with the rest of
+the suite:
 
 ```bash
 cd web && npm test
