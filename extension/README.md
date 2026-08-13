@@ -114,6 +114,53 @@ Click the toolbar icon:
   characters, 128 in Japan). Some categories are stricter; your listing's edit
   page in Seller Central shows the real figure.
 
+## Why this cannot get you rate-limited or blocked
+
+The extension **makes no network requests at all**. Not to Amazon, not
+anywhere. It reads the page your browser has already downloaded and rendered,
+and that is the whole of its interaction with the outside world.
+
+Concretely, and verifiable by grepping this folder:
+
+| | |
+|---|---|
+| `fetch`, `XMLHttpRequest`, WebSocket, `sendBeacon` | none |
+| Remote images, fonts, stylesheets, `@import` | none — every asset is local |
+| `host_permissions` | none declared |
+| Background service worker | none |
+| Clicks, navigation, form submission, synthetic events | none |
+| Cookies, `localStorage`, login state | never read |
+| Declared permissions | `storage`, and nothing else |
+| Leaves the machine | three settings to your own Chrome sync — no ASINs, no listing content |
+
+What triggers Amazon's throttling and CAPTCHA is **request volume**: tools that
+pull hundreds of pages a minute. Zero requests cannot be rate-limited. And
+nothing here touches Seller Central, logs in, or modifies a listing, so there
+is no path from it to a seller account either.
+
+Amazon's Conditions of Use prohibit "data mining, robots, or similar data
+gathering and extraction tools" — a clause aimed at automated extraction at
+scale, not at reading the page in front of you at human pace. Every mainstream
+seller tool works this way. That is context, not a guarantee on Amazon's
+behalf; the point is that the mechanisms which actually cause blocks are
+absent.
+
+### The line, for whoever changes this next
+
+All of the above holds because the extension only ever looks at the page the
+user opened themselves. **The moment it requests a page instead, this section
+stops being true.** Anything of the following shape needs deliberate design —
+pacing, back-off, and the user's explicit consent — rather than being added as
+a convenience:
+
+- auditing a list of ASINs in one run
+- fetching competitor listings in the background
+- walking search results or a catalogue
+- refreshing anything on a timer against Amazon
+
+If you are adding one of those, that is a different tool with a different risk
+profile. Do not let it arrive by accident.
+
 ## What it does not do
 
 It does not read your search term reports — the words shoppers actually type
