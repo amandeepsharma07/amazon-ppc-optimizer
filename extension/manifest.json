@@ -3,7 +3,9 @@
   "name": "Listing Audit for Amazon Sellers",
   "version": "1.0.0",
   "description": "Scores the Amazon product page you are on against Amazon's listing rules and shows the fixes, in order, on the page itself.",
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "action": {
     "default_popup": "src/popup.html",
     "default_title": "Listing Audit",
@@ -43,13 +45,20 @@
         "*://*.amazon.com.au/*",
         "*://*.amazon.co.jp/*"
       ],
-      "js": ["src/content.js"],
+      "js": [
+        "src/content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["src/audit.js", "src/scrape.js", "src/panel.js"],
+      "resources": [
+        "src/audit.js",
+        "src/scrape.js",
+        "src/panel.js",
+        "src/suggest.js"
+      ],
       "matches": [
         "*://*.amazon.com/*",
         "*://*.amazon.in/*",

@@ -103,6 +103,43 @@ summary .grow { flex: 1; }
 .chip { background: #f0f4f8; border-radius: 12px; padding: 2px 9px; font-size: 11.5px; color: #24506b; }
 .muted { color: #565959; font-size: 11.5px; margin: 4px 0 10px; }
 
+.tabs { display: flex; gap: 4px; padding: 8px 0 0; }
+.tab {
+  flex: 1; padding: 6px 4px; font: inherit; font-size: 11.5px; cursor: pointer;
+  border: 1px solid #d5d9d9; border-radius: 7px; background: #fff; color: #565959;
+}
+.tab:hover { background: #f7fafa; }
+.tab[aria-selected="true"] { background: #0f1111; border-color: #0f1111; color: #fff; font-weight: 600; }
+
+ul.areas { margin: 0; padding: 0; list-style: none; }
+ul.areas li { padding: 9px 0; border-bottom: 1px solid #f2f4f4; }
+ul.areas li:last-child { border-bottom: 0; }
+.areahead { display: flex; gap: 8px; align-items: baseline; }
+.areahead strong { flex: 1; font-size: 12.5px; }
+.headroom { margin: 2px 0 0; font-size: 11.5px; color: #24506b; font-weight: 600; }
+
+.variant { border: 1px solid #eaeded; border-radius: 8px; padding: 10px; margin: 0 0 8px; }
+.variant h4 { margin: 0 0 2px; font-size: 12px; }
+.variant .txt { margin: 4px 0 0; font-size: 12.5px; word-break: break-word; }
+.variant .meta { margin: 5px 0 0; font-size: 11px; color: #565959; }
+.variant.thin { border-color: #f0dcc0; background: #fffbf5; }
+.rowbtns { display: flex; gap: 6px; margin-top: 8px; }
+.rowbtns button { flex: 1; }
+
+ol.slots { margin: 0; padding: 0; list-style: none; counter-reset: slot; }
+ol.slots > li { padding: 10px 0; border-bottom: 1px solid #f2f4f4; }
+ol.slots > li:last-child { border-bottom: 0; }
+.slothead { display: flex; gap: 8px; align-items: baseline; }
+.slotno {
+  flex: none; width: 17px; height: 17px; border-radius: 50%; background: #eaeded;
+  color: #565959; font-size: 10px; font-weight: 700; display: grid; place-items: center;
+}
+.slotno.missing { background: #fdf0ed; color: #a03614; }
+.slothead b { flex: 1; font-size: 12px; font-weight: 600; }
+.slotbody { margin: 5px 0 0 25px; }
+.slotbody .txt { font-size: 12.5px; word-break: break-word; }
+.slotbody .txt em { font-style: normal; font-weight: 700; }
+
 .badge {
   display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
   font: 12px/1 "Amazon Ember", Arial, sans-serif; color: #0f1111;
@@ -184,13 +221,81 @@ function sectionGroup(section) {
   );
 }
 
+/** A button that copies text and says so, then goes back to its label. */
+function copyButton(label, getText, extraClass = "act") {
+  const button = h("button", {
+    class: extraClass, text: label,
+    onclick: () => {
+      navigator.clipboard.writeText(getText())
+        .then(() => { button.textContent = "Copied"; })
+        .catch(() => { button.textContent = "Copy failed"; })
+        .finally(() => setTimeout(() => { button.textContent = label; }, 1500));
+    },
+  });
+  return button;
+}
+
+function areaRow(area) {
+  return h("li", {},
+    h("div", { class: "areahead" },
+      h("strong", { text: area.area }),
+      area.points ? h("span", { class: "cost", text: `${area.points} pts` }) : null,
+    ),
+    h("p", { class: "headroom", text: area.headroom }),
+    h("p", { class: "detail", text: area.detail }),
+  );
+}
+
+function variantCard(variant) {
+  const card = h("div", { class: `variant${variant.thin ? " thin" : ""}` },
+    h("h4", { text: variant.label }),
+    h("p", { class: "detail", text: variant.note }),
+    h("p", { class: "txt", text: variant.text || "Nothing on the page to build a title from." }),
+    h("p", {
+      class: "meta",
+      text: `${variant.length} of ${variant.limit} characters`
+        + (variant.thin ? " — short. The gaps below are what would lengthen it honestly." : ""),
+    }),
+  );
+  if (variant.text) card.append(copyButton("Copy", () => variant.text));
+  return card;
+}
+
+function slotRow(slot) {
+  const missing = slot.status !== "reworked";
+  const lead = slot.label ? `${slot.label} — ` : "";
+  const body = slot.text && lead && slot.text.startsWith(lead) ? slot.text.slice(lead.length) : slot.text;
+  return h("li", {},
+    h("div", { class: "slothead" },
+      h("span", { class: `slotno${missing ? " missing" : ""}`, text: String(slot.slot) }),
+      h("b", { text: slot.brief }),
+    ),
+    h("div", { class: "slotbody" },
+      slot.text
+        ? h("p", { class: "txt" }, lead ? h("em", { text: lead }) : null, body)
+        : null,
+      slot.violations?.length
+        ? h("p", { class: "detail" },
+          h("em", { text: "Cannot be reused: " }),
+          slot.violations.join("; "))
+        : null,
+      slot.facts.length
+        ? h("ul", { class: "ev" }, slot.facts.map(f => h("li", { text: f })))
+        : null,
+      slot.note ? h("p", { class: slot.status === "reworked" ? "fixnote" : "detail", text: slot.note }) : null,
+      slot.text ? copyButton("Copy this bullet", () => slot.text) : null,
+    ),
+  );
+}
+
 /**
- * @param report    output of auditListing
- * @param listing   the scrape it was built from
- * @param handlers  { onCopy, onRerun, onClose, onCollapse }
+ * @param report       output of auditListing
+ * @param listing      the scrape it was built from
+ * @param suggestions  output of buildSuggestions
+ * @param handlers     { onCopy, onRerun, onClose, onCollapse }
  * @returns the host element, already attached to the document
  */
-export function renderPanel(report, listing, handlers = {}) {
+export function renderPanel(report, listing, suggestions, handlers = {}) {
   document.getElementById("ppc-listing-audit-host")?.remove();
 
   const host = h("div", { id: "ppc-listing-audit-host" });
@@ -231,68 +336,114 @@ export function renderPanel(report, listing, handlers = {}) {
     body,
   );
 
+  /* The panel answers two different questions and they do not belong in one
+     scroll: what is wrong with the listing, and what to write instead. */
+  const audit = h("div");
+  const rebuild = h("div", { style: "display:none" });
+  const tabs = h("div", { class: "tabs" });
+  const views = [
+    { label: "What's wrong", view: audit },
+    { label: "What to write", view: rebuild },
+  ];
+  const buttons = views.map((entry, i) => h("button", {
+    class: "tab", role: "tab", "aria-selected": i === 0 ? "true" : "false", text: entry.label,
+    onclick: () => {
+      views.forEach((other, j) => {
+        other.view.style.display = i === j ? "" : "none";
+        buttons[j].setAttribute("aria-selected", i === j ? "true" : "false");
+      });
+      body.scrollTop = 0;
+    },
+  }));
+  tabs.append(...buttons);
+  body.append(tabs, audit, rebuild);
+
+  /* ================= what's wrong ================= */
+
   if (report.policyFailures) {
-    body.append(h("div", {
+    audit.append(h("div", {
       class: "alert bad",
       text: `${report.policyFailures} policy check${report.policyFailures > 1 ? "s" : ""} failing. These risk suppression, not just ranking — fix them before anything else.`,
     }));
   }
 
-  /* ---- what to fix, in order ---- */
-  body.append(h("h3", { class: "sec", text: "Fix in this order" }));
+  audit.append(h("h3", { class: "sec", text: "Fix in this order" }));
   if (report.fixes.length) {
-    body.append(h("ol", { class: "fixes" }, report.fixes.slice(0, 6).map(fixRow)));
+    audit.append(h("ol", { class: "fixes" }, report.fixes.slice(0, 6).map(fixRow)));
     if (report.fixes.length > 6) {
-      body.append(h("p", { class: "muted", text: `${report.fixes.length - 6} more below, grouped by area.` }));
+      audit.append(h("p", { class: "muted", text: `${report.fixes.length - 6} more below, grouped by area.` }));
     }
   } else {
-    body.append(h("p", { class: "muted", text: "Nothing failing. Every readable check passed." }));
+    audit.append(h("p", { class: "muted", text: "Nothing failing. Every readable check passed." }));
   }
 
-  /* ---- corrected title ---- */
   if (report.titleRewrite.changed) {
-    body.append(h("h3", { class: "sec", text: "Corrected title" }));
+    audit.append(h("h3", { class: "sec", text: "Corrected title" }));
     const box = h("div", { class: "rewrite" },
       h("p", { class: "txt", text: report.titleRewrite.text }),
       h("p", { class: "meta", text: `${report.titleRewrite.text.length} of ${report.titleLimit} characters` }),
       h("ul", { class: "ev" }, report.titleRewrite.notes.map(n => h("li", { text: n }))),
+      copyButton("Copy corrected title", () => report.titleRewrite.text),
     );
-    const copyTitle = h("button", {
-      class: "act", style: "margin-top:8px", text: "Copy corrected title",
-      onclick: () => {
-        navigator.clipboard.writeText(report.titleRewrite.text)
-          .then(() => { copyTitle.textContent = "Copied"; setTimeout(() => { copyTitle.textContent = "Copy corrected title"; }, 1500); })
-          .catch(() => { copyTitle.textContent = "Copy failed"; });
-      },
-    });
-    box.append(copyTitle);
-    body.append(box);
-    body.append(h("p", { class: "muted", text: "Mechanical corrections only — nothing has been written for you. Read it before you paste it." }));
+    audit.append(box);
+    audit.append(h("p", { class: "muted", text: "Your title with the violations taken out — not a rewrite. For rebuilt titles, see What to write." }));
   }
 
-  /* ---- keyword gaps ---- */
-  if (report.keywordGaps.length) {
-    body.append(h("h3", { class: "sec", text: "Used below, missing from the title" }));
-    body.append(h("div", { class: "chips" }, report.keywordGaps.map(k => h("span", { class: "chip", text: k.word }))));
-    body.append(h("p", { class: "muted", text: "Not scored — whether these belong in the title is a judgement about the product. The title carries the most weight of any field, so they are the candidates." }));
-  }
-
-  /* ---- full breakdown ---- */
-  body.append(h("h3", { class: "sec", text: "Every check" }));
-  for (const section of report.sections) body.append(sectionGroup(section));
+  audit.append(h("h3", { class: "sec", text: "Every check" }));
+  for (const section of report.sections) audit.append(sectionGroup(section));
 
   if (report.unreadable.length) {
-    body.append(h("div", {
+    audit.append(h("div", {
       class: "alert info",
       text: `${report.unreadable.length} check${report.unreadable.length > 1 ? "s" : ""} could not be read from this page and ${report.unreadable.length > 1 ? "were" : "was"} left out of the score. Scroll the page fully, then re-run.`,
     }));
   }
 
+  /* ================= what to write ================= */
+
+  rebuild.append(h("h3", { class: "sec", text: "Where the room is" }));
+  rebuild.append(h("ul", { class: "areas" }, suggestions.areas.map(areaRow)));
+
+  rebuild.append(h("h3", { class: "sec", text: "Title — three ways to rebuild it" }));
+  for (const variant of suggestions.titles) rebuild.append(variantCard(variant));
+
+  const missing = suggestions.titles[0]?.missing ?? [];
+  rebuild.append(h("p", { class: "muted" },
+    "Assembled from this page only — the attribute table, the breadcrumb and your own copy. "
+    + "No word here was written for you, which is why they read like assembly rather than prose. "
+    + "Use them as the skeleton and put your sentence around it."));
+  if (missing.length) {
+    rebuild.append(h("div", { class: "alert info" },
+      h("div", { style: "font-weight:700;margin-bottom:4px" }, "What would make these stronger"),
+      h("ul", { class: "ev", style: "color:inherit" }, missing.map(m => h("li", { text: m })))));
+  }
+
+  if (report.keywordGaps.length) {
+    rebuild.append(h("h3", { class: "sec", text: "Words your page uses that the title does not" }));
+    rebuild.append(h("div", { class: "chips" }, report.keywordGaps.map(k => h("span", { class: "chip", text: k.word }))));
+    rebuild.append(h("p", { class: "muted", text: "Candidates, not instructions — whether one belongs in the title is a judgement about the product. The keyword-heavy variant above already uses the strongest few." }));
+  }
+
+  rebuild.append(h("h3", { class: "sec", text: `Bullet plan — ${suggestions.bullets.covered} of 5 slots filled` }));
+  if (suggestions.bullets.blocked) {
+    rebuild.append(h("div", {
+      class: "alert bad",
+      text: `${suggestions.bullets.blocked} of your bullets breaks policy, so ${suggestions.bullets.blocked > 1 ? "they are" : "it is"} not offered back to copy. The slot below says what has to come out.`,
+    }));
+  }
+  rebuild.append(h("ol", { class: "slots" }, suggestions.bullets.plan.map(slotRow)));
+  rebuild.append(h("p", { class: "muted", text: "Your own sentences, sorted into the five jobs a bullet block has to do and given a lead phrase. Empty slots list the facts the page already states, so the sentence has something to be built from." }));
+
+  if (suggestions.bullets.unused.length) {
+    rebuild.append(h("h3", { class: "sec", text: "Did not fit a slot" }));
+    rebuild.append(h("ul", { class: "ev" }, suggestions.bullets.unused.map(b => h("li", { text: b }))));
+  }
+
   const copyBtn = h("button", {
-    class: "act primary", text: "Copy full report",
+    class: "act primary", text: "Copy everything",
     onclick: () => {
       handlers.onCopy?.()
-        ?.then(() => { copyBtn.textContent = "Copied"; setTimeout(() => { copyBtn.textContent = "Copy full report"; }, 1500); })
+        ?.then(() => { copyBtn.textContent = "Copied"; setTimeout(() => { copyBtn.textContent = "Copy everything"; }, 1500); })
         ?.catch(() => { copyBtn.textContent = "Copy failed"; });
     },
   });

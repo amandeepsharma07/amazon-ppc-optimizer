@@ -219,6 +219,45 @@ function findContact(text) {
   return hits;
 }
 
+/** Names in the text that belong to somebody other than the seller. */
+function foundTrademarks(text, ownBrand) {
+  const own = new Set(words(ownBrand || ""));
+  const found = new Set();
+  const seq = words(text);
+  for (const w of seq) {
+    if (!own.has(w) && TRADEMARKED.has(w)) found.add(w);
+  }
+  // Adjacent pairs catch two-word brands like "american tourister".
+  for (let i = 0; i < seq.length - 1; i++) {
+    const joined = seq[i] + seq[i + 1];
+    if (TRADEMARKED.has(joined) && !own.has(joined)) found.add(`${seq[i]} ${seq[i + 1]}`);
+  }
+  return [...found];
+}
+
+/**
+ * Every policy problem in a piece of listing copy, in one call.
+ *
+ * Exported because the audit is not the only thing that needs it: anything
+ * proposing copy back to the seller has to screen it first. Handing back a
+ * sentence the audit would fail — with a copy button next to it — would be
+ * worse than saying nothing.
+ */
+export function policyIssues(text, ownBrand = "") {
+  const issues = [];
+  if (!text) return issues;
+  for (const hit of findPhrases(text, PROHIBITED_PHRASES)) {
+    issues.push({ kind: "claim", found: hit.phrase, why: hit.why });
+  }
+  for (const name of foundTrademarks(text, ownBrand)) {
+    issues.push({ kind: "trademark", found: name, why: "Another brand's name — remove unless you hold a licence" });
+  }
+  for (const hit of findContact(text)) {
+    issues.push({ kind: "contact", found: hit.found, why: `Contains ${hit.what} — enforced at account level, not listing level` });
+  }
+  return issues;
+}
+
 /* ------------------------------------------------------------------ *
  * Checks
  * ------------------------------------------------------------------ */
@@ -521,26 +560,15 @@ function policyChecks(listing) {
 
   out.push(check("policy-trademarks", "No other brands named", 5, "policy",
     !readable ? { earned: null, detail: "No listing copy could be read." } : (() => {
-      const own = new Set(words(listing.brand || ""));
-      const found = new Set();
-      for (const w of words(all)) {
-        if (own.has(w)) continue;
-        if (TRADEMARKED.has(w)) found.add(w);
-      }
-      // Adjacent pairs catch two-word brands like "american tourister".
-      const seq = words(all);
-      for (let i = 0; i < seq.length - 1; i++) {
-        const joined = seq[i] + seq[i + 1];
-        if (TRADEMARKED.has(joined) && !own.has(joined)) found.add(`${seq[i]} ${seq[i + 1]}`);
-      }
-      if (!found.size) return { earned: 5, detail: "No competitor or licensed names found." };
+      const found = foundTrademarks(all, listing.brand);
+      if (!found.length) return { earned: 5, detail: "No competitor or licensed names found." };
       return {
         earned: 0,
-        detail: found.size === 1
+        detail: found.length === 1
           ? "A name that belongs to someone else."
-          : `${found.size} names that belong to someone else.`,
+          : `${found.length} names that belong to someone else.`,
         fix: "Naming another brand — even as \"compatible with\" — is the most common cause of a listing being pulled. Remove unless you hold a licence.",
-        evidence: [...found],
+        evidence: found,
       };
     })()));
 

@@ -20,14 +20,15 @@ if (!window.__ppcListingAuditLoaded) {
   window.__ppcListingAuditLoaded = true;
 
   (async () => {
-    const [audit, scrape, panel] = await Promise.all([
+    const [audit, scrape, panel, suggest] = await Promise.all([
       import(chrome.runtime.getURL("src/audit.js")),
       import(chrome.runtime.getURL("src/scrape.js")),
       import(chrome.runtime.getURL("src/panel.js")),
+      import(chrome.runtime.getURL("src/suggest.js")),
     ]);
 
     const DEFAULTS = { autoOpen: true, titleLimit: 0 };
-    let current = null;   // { listing, report }
+    let current = null;   // { listing, report, suggestions }
     let lastUrl = location.href;
 
     const settings = () => new Promise(resolve => {
@@ -55,14 +56,17 @@ if (!window.__ppcListingAuditLoaded) {
 
     function copyReport() {
       if (!current) return Promise.reject(new Error("nothing audited yet"));
-      return navigator.clipboard.writeText(audit.reportToText(current.report, current.listing));
+      return navigator.clipboard.writeText(
+        audit.reportToText(current.report, current.listing)
+        + "\n" + suggest.suggestionsToText(current.suggestions)
+      );
     }
 
-    function show(report, listing) {
-      panel.renderPanel(report, listing, {
+    function show(report, listing, suggestions) {
+      panel.renderPanel(report, listing, suggestions, {
         onCopy: copyReport,
         onRerun: () => run({ open: true }),
-        onClose: () => panel.renderTitleBadge(report, () => show(report, listing)),
+        onClose: () => panel.renderTitleBadge(report, () => show(report, listing, suggestions)),
         onCollapse: collapsed => chrome.storage.sync.set({ collapsed }),
       });
     }
@@ -70,14 +74,14 @@ if (!window.__ppcListingAuditLoaded) {
     async function run({ open }) {
       if (!scrape.isProductPage()) return null;
       const config = await settings();
+      const options = { titleLimit: config.titleLimit || undefined };
       const listing = scrape.scrapeListing();
-      const report = audit.auditListing(listing, {
-        titleLimit: config.titleLimit || undefined,
-      });
-      current = { listing, report };
+      const report = audit.auditListing(listing, options);
+      const suggestions = suggest.buildSuggestions(report, listing, options);
+      current = { listing, report, suggestions };
 
-      panel.renderTitleBadge(report, () => show(report, listing));
-      if (open) show(report, listing);
+      panel.renderTitleBadge(report, () => show(report, listing, suggestions));
+      if (open) show(report, listing, suggestions);
       return report;
     }
 

@@ -50,13 +50,60 @@ panel says how many were dropped. A scraping gap must never look like a
 listing problem. If several checks come back unreadable, scroll the whole page
 so everything has loaded and press **Re-run**.
 
-## The corrected title
+## What to write
 
-Where the panel offers a rewritten title it is a *mechanical* correction:
-disallowed characters removed, prohibited claims cut, shouted words put into
-title case, words repeated three or more times dropped, brand moved to the
-front, trimmed to the limit on a word boundary. Nothing is written for you and
-no word is invented. Read it before you paste it into Seller Central.
+The panel's second tab answers a different question from the first. **What's
+wrong** is the audit. **What to write** is where the work is.
+
+### Where the room is
+
+Every area with the points still recoverable and, more usefully, a measured
+figure for the space going unused: characters left in the title, characters
+used across the bullet block against roughly 1,250 available, images against
+a full gallery, attributes filled against attributes usable. A title can pass
+every policy check and still be spending 90 of its 200 characters, which no
+check fails and no score reflects.
+
+### Three rebuilt titles
+
+Following `[Brand] + [Product type] + [Attributes]`, differing in what leads:
+
+| Variant | Leads with | Use when |
+|---|---|---|
+| Feature-forward | Material, then size | The buyer is comparing specifications |
+| Use-case-forward | Who it is for, attached to the product name | The buyer is choosing by occasion |
+| Keyword-heavy | Words your own copy uses that the title does not | Indexing matters more than reading |
+
+### A five-slot bullet plan
+
+Your existing bullets are sorted into the five jobs a bullet block has to do —
+headline feature, second feature in a situation, material and certification,
+who it fits, what sets it apart — given a lead phrase taken from their own
+words, and flagged where they are too thin. Empty slots list the facts the
+page already states, so there is something to build the sentence from.
+
+## What is and is not generated
+
+There is no model behind this. Every word it proposes comes off the page it is
+looking at: the attribute table, the breadcrumb, your own copy. That is a
+narrower job than writing, and the panel says so where it matters — a missing
+fact is named as missing rather than filled in with something plausible. A
+tool that quietly invents a material or a capacity is worse than no tool,
+because the seller publishes it.
+
+So the titles read like assembly, because that is what they are. Use them as
+the skeleton and put your sentence around it.
+
+Two consequences worth knowing:
+
+- **The corrected title** on the first tab is your title with its violations
+  removed — not a rewrite. The rebuilt titles on the second tab are the
+  rewrites. They are deliberately kept apart.
+- **Copy that breaks policy is never offered back.** A bullet naming a
+  competitor or carrying a phone number is not given a copy button, however
+  well it fits its slot. The slot names what has to come out instead. Handing
+  back the violation the other tab is telling you to remove would make the
+  whole thing untrustworthy.
 
 ## Settings
 
@@ -69,16 +116,18 @@ Click the toolbar icon:
 
 ## What it does not do
 
-It does not write copy, and it does not read your search term reports — the
-words shoppers actually type live in the reports the web app in `web/` reads.
-The two work together: this tells you what is wrong with the listing, that
-tells you which words belong in it.
+It does not read your search term reports — the words shoppers actually type
+live in the reports the web app in `web/` reads, and the hidden Search Terms
+field cannot be seen from a product page at all. The two work together: this
+tells you what is wrong with the listing and hands you the skeleton to rebuild
+it, that tells you which words belong in it.
 
 ## For anyone changing it
 
 ```
 manifest.json        permissions, matched domains
-src/audit.js         the engine: rules, weights, scoring, the title rewrite
+src/audit.js         the engine: rules, weights, scoring, the title correction
+src/suggest.js       the proposals: work areas, title variants, bullet plan
 src/scrape.js        reads the page — every field may return null
 src/panel.js         the injected panel, in a shadow root
 src/content.js       timing and plumbing only
@@ -86,14 +135,17 @@ src/popup.html/js    the toolbar popup
 tools/make-icons.mjs regenerates the icons
 ```
 
-`audit.js` is pure — no DOM, no network, no `chrome.*` — which is why it can
-be unit-tested. Its tests live in `web/tests/listing-audit.test.ts` and run
-with the rest of the suite:
+`audit.js` and `suggest.js` are pure — no DOM, no network, no `chrome.*` —
+which is why they can be unit-tested. Their tests live in
+`web/tests/listing-audit.test.ts` and `web/tests/listing-suggest.test.ts` and
+run with the rest of the suite:
 
 ```bash
 cd web && npm test
 ```
 
-Rules belong in `audit.js` and selectors belong in `scrape.js`. Keeping them
-apart is what lets Amazon change its markup without anyone having to re-reason
-about the scoring.
+Rules belong in `audit.js`, proposals in `suggest.js`, selectors in
+`scrape.js`. Keeping them apart is what lets Amazon change its markup without
+anyone having to re-reason about the scoring — and it is why `suggest.js` can
+call `policyIssues()` to screen its own output against the same rules the
+audit uses, instead of carrying a second, drifting copy of them.

@@ -59,28 +59,53 @@ function parseByline(value) {
   return out && out.length <= 60 ? out : null;
 }
 
-function brandFromDetailTables() {
-  // The attribute tables spell the label in the marketplace's language, so the
-  // row is found by position rather than by matching the word "Brand".
+/**
+ * The attribute tables — "Material: Canvas", "Capacity: 30 litres".
+ *
+ * These matter more than they look: they are the only place on the page where
+ * a product's facts are stated as facts rather than buried in prose, which
+ * makes them the raw material for rebuilding a title. Read as label/value
+ * pairs and classified later, so a marketplace whose labels are not English
+ * still yields the pairs even when nothing can be made of them.
+ */
+function readAttributes() {
+  const pairs = [];
+  const seen = new Set();
+  const add = (label, value) => {
+    if (!label || !value) return;
+    if (value.length > 120 || label.length > 40) return;
+    const key = label.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    pairs.push({ label, value });
+  };
+
   const rows = document.querySelectorAll(
-    "#productOverview_feature_div tr, #productDetails_techSpec_section_1 tr, .a-normal.a-spacing-micro tr"
+    "#productOverview_feature_div tr, #productDetails_techSpec_section_1 tr,"
+    + " #productDetails_detailBullets_sections1 tr, .a-normal.a-spacing-micro tr"
   );
   for (const row of rows) {
     const cells = row.querySelectorAll("td, th");
     if (cells.length !== 2) continue;
-    const label = clean(cells[0].textContent).toLowerCase();
-    if (/^(brand|marca|marque|marke|märke|marka|ブランド|品牌|العلامة)/.test(label)) {
-      const value = clean(cells[1].textContent);
-      if (value) return value;
-    }
+    add(clean(cells[0].textContent), clean(cells[1].textContent));
   }
+
   for (const li of document.querySelectorAll("#detailBullets_feature_div li")) {
-    const label = clean(li.querySelector("span.a-text-bold")?.textContent || "").toLowerCase();
-    if (/brand|marca|marque|marke/.test(label)) {
-      const spans = li.querySelectorAll("span span");
-      const value = clean(spans[spans.length - 1]?.textContent);
-      if (value) return value;
-    }
+    const bold = li.querySelector("span.a-text-bold");
+    if (!bold) continue;
+    // Amazon separates the two halves with directional marks, not a plain colon.
+    const label = clean(bold.textContent).replace(/[‎‏‏‎:：\s]+$/g, "");
+    const spans = li.querySelectorAll("span span");
+    add(label, clean(spans[spans.length - 1]?.textContent));
+  }
+
+  return pairs.length ? pairs : null;
+}
+
+function brandFromAttributes(pairs) {
+  // The label is localised, so it is matched in the languages the marketplaces use.
+  for (const { label, value } of pairs || []) {
+    if (/^(brand|marca|marque|marke|märke|marka|ブランド|品牌|العلامة)/i.test(label)) return value;
   }
   return null;
 }
@@ -191,9 +216,10 @@ export function scrapeListing() {
   const marketplace = marketplaceFromHost(location.hostname);
   const { images, hasVideo } = readImages();
   const { rating, reviewCount } = readRating();
+  const attributes = readAttributes();
 
   const brand = parseByline(text(["#bylineInfo", "#brand", "a#bylineInfo"]))
-    || brandFromDetailTables()
+    || brandFromAttributes(attributes)
     || null;
 
   return {
@@ -211,6 +237,14 @@ export function scrapeListing() {
     reviewCount,
     price: text([".a-price .a-offscreen", "#corePrice_feature_div .a-offscreen", "#priceblock_ourprice"]),
     inStock: readAvailability(),
+    attributes,
     category: text(["#wayfinding-breadcrumbs_feature_div"]),
+    // The last crumb is the category Amazon itself files this under, which is
+    // usually the plainest available name for what the product is.
+    categoryLeaf: (() => {
+      const crumbs = [...document.querySelectorAll("#wayfinding-breadcrumbs_feature_div a")]
+        .map(a => clean(a.textContent)).filter(Boolean);
+      return crumbs.length ? crumbs[crumbs.length - 1] : null;
+    })(),
   };
 }
