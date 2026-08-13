@@ -111,7 +111,7 @@ with `Ctrl` + `C`. After a `git pull` that changed dependencies, run
 | `npm error ... package.json` not found | You're in the wrong folder | `cd` into `web` first |
 | Red **1 Issue** badge about hydration | A browser extension (Grammarly) edited the page | Ignore it — already suppressed in current code |
 | Vercel build fails immediately | Root Directory isn't set to `web` | Vercel → Settings → General → Root Directory → `web` |
-| Build stops: "committed extension archive is out of date" | The extension changed but the download wasn't rebuilt | `cd web`, `npm run build:extension`, commit what it writes |
+| Vercel deploys but the site still looks old | The build failed — the previous deploy is still being served | Vercel → Deployments → open the newest → read the log |
 | "Database not connected" | `DATABASE_URL` missing or wrong | The page names the exact error; fix it in Vercel → Settings → Environment Variables |
 
 ### Two habits that avoid most of it
@@ -166,11 +166,10 @@ After a `git pull` that changed it, press the **reload arrow** on its card in
 `chrome://extensions` and refresh the Amazon tab. That step is easy to forget
 and looks exactly like the extension being broken.
 
-The download on the web app is rebuilt from the extension folder, and the web
-build **fails** if the two have drifted — so what the team downloads is always
-what is in the repository. If a build stops with "the committed extension
-archive is out of date", run `npm run build:extension` in `web` and commit what
-it writes.
+The download on the web app is repacked from the extension folder on every
+build, so what the team downloads is always what is in the repository. You
+never have to remember to rebuild it. If you want to check before committing,
+`npm run check:extension` in `web` says whether the committed copy is current.
 
 | What you see | What to do |
 |---|---|

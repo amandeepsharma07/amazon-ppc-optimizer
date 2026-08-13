@@ -20,9 +20,14 @@
  * fixed, so identical sources produce byte-identical zips. Without that, a
  * committed binary would churn on every run and every diff would be noise.
  *
- * **It can check instead of writing.** `--check` fails when the committed zip
- * no longer matches the source, which is what stops someone editing the
- * extension and shipping a stale download without noticing.
+ * **It runs as part of the build, and regenerates rather than verifies.** An
+ * earlier version failed the build when the committed archive had drifted.
+ * That was the wrong trade: it blocked deploying unrelated fixes because a
+ * download artifact was stale, and it did exactly that here — two commits
+ * shipped an archive packed moments before the extension's README changed, so
+ * every deploy after them failed and the new page never went live. Rebuilding
+ * costs milliseconds and makes drift impossible. `--check` is still available
+ * for a pre-commit sanity check; it just no longer gates a deploy.
  *
  * No archiver dependency: a zip is a handful of documented records, and
  * zlib is already in Node.
@@ -173,13 +178,30 @@ const info = {
 };
 
 if (mode === "check") {
-  const existing = existsSync(ZIP) ? readFileSync(ZIP) : null;
-  if (existing && createHash("sha256").update(existing).digest("hex") === sha256) {
+  /* Compared on the *source* hash, never on the archive's bytes.
+     zlib's output is not guaranteed identical across versions, so a build
+     machine running a different Node than the one that wrote the archive would
+     produce different compressed bytes from identical sources — and a check on
+     those bytes would fail a deploy over nothing at all. Which files with
+     which contents went in is the thing that actually matters, and it is
+     stable everywhere. */
+  const recorded = existsSync(INFO) ? JSON.parse(readFileSync(INFO, "utf8")) : null;
+  if (!existsSync(ZIP) || !recorded) {
+    console.error(
+      "The extension archive is missing.\n"
+      + "Run:  npm run build:extension\n"
+      + "then commit web/assets/listing-audit-extension.zip and extension-build.json."
+    );
+    process.exit(1);
+  }
+  if (recorded.sourceHash === info.sourceHash) {
     console.log(`extension archive is current (v${info.version}, ${files.length} files)`);
     process.exit(0);
   }
   console.error(
-    "The committed extension archive is out of date.\n"
+    "The committed extension archive is out of date — extension/ has changed since it was packed.\n"
+    + `  packed:  ${recorded.sourceHash} (${recorded.files} files)\n`
+    + `  current: ${info.sourceHash} (${files.length} files)\n`
     + "Run:  npm run build:extension\n"
     + "then commit web/assets/listing-audit-extension.zip and extension-build.json."
   );
