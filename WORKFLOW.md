@@ -47,6 +47,13 @@ folder. If it isn't there, nothing else will work.
    `DATABASE_URL` = your Neon connection string
 5. **Deploy**
 
+Two more are optional, needed only for the automatic Amazon data:
+
+| Variable | When you need it |
+|---|---|
+| `SPAPI_ENCRYPTION_KEY` | Before saving Amazon credentials. The Amazon connection page generates one for you to paste — keep a copy, because changing it makes the stored credentials unreadable |
+| `CRON_SECRET` | Optional. Set it and the daily job refuses callers without it |
+
 Vercel now watches the repository. **Every push deploys automatically** — you
 never touch the Vercel dashboard again unless you want to change a setting.
 
@@ -113,6 +120,8 @@ with `Ctrl` + `C`. After a `git pull` that changed dependencies, run
 | Vercel build fails immediately | Root Directory isn't set to `web` | Vercel → Settings → General → Root Directory → `web` |
 | Vercel deploys but the site still looks old | The build failed — the previous deploy is still being served | Vercel → Deployments → open the newest → read the log |
 | "Database not connected" | `DATABASE_URL` missing or wrong | The page names the exact error; fix it in Vercel → Settings → Environment Variables |
+| "SPAPI_ENCRYPTION_KEY is not set" | Amazon credentials can't be stored safely yet | The Amazon connection page shows a key to paste into Vercel, then redeploy |
+| Amazon connection says "needs attention" | Amazon rejected something | The exact reason is on that page — usually a re-authorisation is needed after changing the app's roles |
 
 ### Two habits that avoid most of it
 
@@ -145,7 +154,28 @@ keywords are calculated benefits every version.
 
 ---
 
-## Part 4 — The Chrome extension
+## Part 4 — The Amazon connection
+
+Set up once, then the search term data arrives on its own.
+
+1. **Seller Central** → **Apps & Services** → **Develop Apps**
+2. Create an app, tick the **Brand Analytics** role
+3. Use **Authorise** on your own account to get a **refresh token**
+4. In the web app: **Amazon connection** → paste the client ID, secret and token → **Save**
+5. **Test connection**, then **Pull search terms now**
+
+A report takes Amazon a few minutes to build, which is longer than a web
+request may last, so a pull happens in two steps: one asks, a later run
+collects. The scheduled job at 06:00 UTC does both — collects whatever
+finished, then asks for the next. After the first setup this needs no
+attention.
+
+Brand Analytics data appears a few days after each week closes, so the most
+recent week will not exist yet. That is Amazon's schedule, not a fault.
+
+---
+
+## Part 5 — The Chrome extension
 
 There are two ways in. **For anyone else on the team**, the web app has a
 **Chrome extension** page in the menu with a download and the steps — no git,

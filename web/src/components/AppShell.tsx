@@ -31,6 +31,17 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M14 5.5a2.8 2.8 0 0 1 0 5.4M15 12.5c2 .6 3 2.3 3 4.5" />
     </svg>
   ),
+  search: (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <circle cx="8.5" cy="8.5" r="5" />
+      <path d="M12.4 12.4 17 17" />
+    </svg>
+  ),
+  plug: (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M7 2.5v4M13 2.5v4M4.5 6.5h11v3a5.5 5.5 0 0 1-11 0zM10 15v3" />
+    </svg>
+  ),
   build: (
     <svg viewBox="0 0 20 20" aria-hidden="true">
       <path d="M4 3.5h9l3 3V16a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 4 16z" />
@@ -81,6 +92,7 @@ export default function AppShell({
     {
       title: "Listings",
       items: [
+        { href: "/keyword-research", icon: "search", label: "Keyword research", hint: "Magnet and Cerebro" },
         { href: "/keyword-tools", icon: "keywords", label: "Keyword processor", hint: "Clean and rank lists" },
         { href: "/listing-builder", icon: "build", label: "Listing builder", hint: "Write with coverage" },
         { href: "/backend-keywords", icon: "keywords", label: "Backend keywords", hint: "Search Terms field" },
@@ -88,7 +100,13 @@ export default function AppShell({
       ],
     },
     ...(user.role === "admin"
-      ? [{ title: "Admin", items: [{ href: "/admin", icon: "team", label: "Team", hint: "Who has access" }] }]
+      ? [{
+        title: "Admin",
+        items: [
+          { href: "/admin", icon: "team", label: "Team", hint: "Who has access" },
+          { href: "/settings", icon: "plug", label: "Amazon connection", hint: "Automatic data" },
+        ],
+      }]
       : []),
   ];
 

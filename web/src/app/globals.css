@@ -345,3 +345,7 @@ textarea {
   border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px;
   font: inherit; line-height: 1.5; resize: vertical;
 }
+
+/* ---- connection settings ---- */
+.notice-bad { border-color: var(--crit); }
+.notice-bad .section { color: var(--crit); }
