@@ -154,6 +154,26 @@ table.grid tr.sp td { background: #fffaf3; }
 .stat div { font-size: 11px; color: #565959; }
 .stat b { display: block; font-size: 15px; color: #0f1111; font-variant-numeric: tabular-nums; }
 
+.spark { width: 100%; height: 56px; display: block; margin: 6px 0 2px; }
+.spark .line { fill: none; stroke: #0f5b8a; stroke-width: 1.6; stroke-linejoin: round; }
+.spark .area { fill: #0f5b8a; opacity: .08; }
+.spark .dot { fill: #0f5b8a; }
+.spark .lo { fill: #067d62; }
+.spark .hi { fill: #c7511f; }
+.axis { display: flex; justify-content: space-between; font-size: 10.5px; color: #565959; }
+
+.holder { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f2f4f4; }
+.holder:last-child { border-bottom: 0; }
+.holder .who { flex: 1; min-width: 0; }
+.holder .who b { display: block; font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.holder .who span { font-size: 11px; color: #565959; }
+.holder .pct { flex: none; font-size: 15px; font-variant-numeric: tabular-nums; }
+.meter { height: 5px; border-radius: 3px; background: #eaeded; overflow: hidden; margin-top: 3px; }
+.meter span { display: block; height: 100%; background: #0f5b8a; }
+.holder.now .meter span { background: #067d62; }
+.pill { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  padding: 1px 5px; border-radius: 4px; background: #e7f5f1; color: #067d62; margin-left: 6px; }
+
 .badge {
   display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
   font: 12px/1 "Amazon Ember", Arial, sans-serif; color: #0f1111;
@@ -302,6 +322,185 @@ function slotRow(slot) {
   );
 }
 
+const SVG = "http://www.w3.org/2000/svg";
+
+function svg(tag, props = {}) {
+  const el = document.createElementNS(SVG, tag);
+  for (const [key, value] of Object.entries(props)) el.setAttribute(key, String(value));
+  return el;
+}
+
+/**
+ * The observed price, day by day.
+ *
+ * Points are spaced by date rather than by index, so a fortnight when nothing
+ * was looked at shows as a gap instead of a straight line pretending the price
+ * was checked and held.
+ */
+function sparkline(series, price) {
+  const points = series.filter(d => typeof d.price === "number");
+  if (points.length < 2) return null;
+
+  const W = 340;
+  const H = 56;
+  const pad = 6;
+  const times = points.map(p => new Date(p.day + "T00:00:00").getTime());
+  const t0 = times[0];
+  const span = Math.max(1, times[times.length - 1] - t0);
+  const lo = price.min.value;
+  const hi = price.max.value;
+  const range = Math.max(1e-9, hi - lo);
+
+  const x = i => pad + ((times[i] - t0) / span) * (W - pad * 2);
+  const y = v => H - pad - ((v - lo) / range) * (H - pad * 2);
+  const coords = points.map((p, i) => [x(i), y(p.price)]);
+
+  const chart = svg("svg", { class: "spark", viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none" });
+  chart.append(svg("polygon", {
+    class: "area",
+    points: [`${coords[0][0]},${H - pad}`, ...coords.map(c => c.join(",")), `${coords[coords.length - 1][0]},${H - pad}`].join(" "),
+  }));
+  chart.append(svg("polyline", { class: "line", points: coords.map(c => c.join(",")).join(" ") }));
+
+  const lowest = points.reduce((a, b) => (b.price < a.price ? b : a));
+  const highest = points.reduce((a, b) => (b.price > a.price ? b : a));
+  chart.append(svg("circle", { class: "lo", cx: x(points.indexOf(lowest)), cy: y(lowest.price), r: 2.6 }));
+  chart.append(svg("circle", { class: "hi", cx: x(points.indexOf(highest)), cy: y(highest.price), r: 2.6 }));
+  const last = coords[coords.length - 1];
+  chart.append(svg("circle", { class: "dot", cx: last[0], cy: last[1], r: 2.6 }));
+  return chart;
+}
+
+const money = (value, currency) => (currency ? `${currency}${value.toLocaleString()}` : value.toLocaleString());
+const onDay = at => new Date(at).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+
+/** Buy Box and price history, and what it is honestly able to say. */
+function renderTracking(view, tracking) {
+  const { summary, changes, paused } = tracking;
+
+  if (paused) {
+    view.append(h("div", { class: "alert info", text: "Tracking is switched off. Turn it on from the toolbar icon and this listing will start building a history from your next visit." }));
+  }
+
+  if (!summary || summary.empty) {
+    view.append(h("p", { class: "muted", text: "Nothing recorded yet. This visit is the first observation — open the listing again over the coming days and the Buy Box and price history builds up here." }));
+    return;
+  }
+
+  /* ---- what just changed ---- */
+  if (changes?.seller) {
+    view.append(h("div", { class: "alert bad" },
+      h("div", { style: "font-weight:700;margin-bottom:3px" }, "The Buy Box changed hands"),
+      `Since your last visit on ${onDay(changes.seller.at)} it moved from ${changes.seller.from} to ${changes.seller.to}.`));
+  }
+  if (changes?.lost) {
+    view.append(h("div", { class: "alert bad" },
+      h("div", { style: "font-weight:700;margin-bottom:3px" }, "The Buy Box is gone"),
+      "No offer is winning it. Sales stop while this lasts, whatever the ad spend."));
+  }
+  if (changes?.regained) {
+    view.append(h("div", { class: "alert info", text: "The Buy Box is back — an offer is winning it again." }));
+  }
+  if (changes?.price) {
+    const { from, to } = changes.price;
+    const currency = summary.price?.currency ?? "";
+    view.append(h("div", { class: "alert info" },
+      h("div", { style: "font-weight:700;margin-bottom:3px" }, `The price ${to > from ? "went up" : "came down"}`),
+      `${money(from, currency)} → ${money(to, currency)} since ${onDay(changes.price.at)}, a ${Math.abs(Math.round(((to - from) / from) * 100))}% ${to > from ? "rise" : "cut"}.`));
+  }
+
+  /* ---- coverage, stated before any percentage ---- */
+  const { coverage } = summary;
+  view.append(h("div", { class: coverage.thin ? "alert bad" : "alert info" },
+    h("div", { style: "font-weight:700;margin-bottom:3px" },
+      `Observed on ${coverage.daysObserved} of the last ${coverage.windowDays} days`),
+    coverage.thin
+      ? "Too few looks to read much into the percentages yet. They firm up as you keep visiting the page."
+      : "Every figure below is measured across the days you opened this page — not across elapsed time. The extension makes no requests, so it only knows what you looked at.",
+  ));
+
+  /* ---- price ---- */
+  if (summary.price) {
+    const p = summary.price;
+    view.append(h("h3", { class: "sec", text: `Price over ${summary.windowDays} days` }));
+    view.append(h("div", { class: "stat" },
+      h("div", {}, h("b", { text: money(p.current, p.currency) }), "now"),
+      h("div", {}, h("b", { text: money(p.min.value, p.currency) }), `low · ${onDay(p.min.at)}`),
+      h("div", {}, h("b", { text: money(p.max.value, p.currency) }), `high · ${onDay(p.max.at)}`),
+      h("div", {}, h("b", { text: String(p.changes) }), p.changes === 1 ? "change" : "changes"),
+    ));
+    if (p.changes && p.dailyChanges !== p.changes) {
+      view.append(h("p", { class: "muted", text: `${p.dailyChanges} of those were day to day; the rest moved within a single day.` }));
+    }
+    const chart = sparkline(summary.series, p);
+    if (chart) {
+      view.append(chart);
+      view.append(h("div", { class: "axis" },
+        h("span", { text: summary.series[0].day }),
+        h("span", { text: summary.series[summary.series.length - 1].day }),
+      ));
+    }
+    if (p.position !== null) {
+      const pct = Math.round(p.position * 100);
+      view.append(h("p", {
+        class: "muted",
+        text: pct <= 10
+          ? `Today's price is at the bottom of its observed range — ${money(p.max.value, p.currency)} is what it has carried before.`
+          : pct >= 90
+            ? `Today's price is at the top of its observed range. It has sold at ${money(p.min.value, p.currency)}.`
+            : `Today's price sits ${pct}% of the way between the observed low and high.`,
+      }));
+    }
+  }
+
+  /* ---- buy box ---- */
+  const bb = summary.buyBox;
+  if (bb) {
+    view.append(h("h3", { class: "sec", text: "Buy Box" }));
+    if (bb.hasBuyBox === false) {
+      view.append(h("div", { class: "alert bad", text: "Nobody holds the Buy Box right now." }));
+    }
+    if (!bb.holders.length) {
+      view.append(h("p", { class: "muted", text: "No seller name could be read from the Buy Box on the days observed." }));
+    }
+    for (const holder of bb.holders) {
+      const isNow = holder.seller === bb.current;
+      view.append(h("div", { class: `holder${isNow ? " now" : ""}` },
+        h("div", { class: "who" },
+          h("b", {}, holder.seller, isNow ? h("span", { class: "pill", text: "now" }) : null),
+          h("span", {
+            text: `${holder.days} of ${coverage.daysObserved} day${coverage.daysObserved === 1 ? "" : "s"} observed`
+              + (holder.sellerId ? ` · ${holder.sellerId}` : ""),
+          }),
+          h("span", { class: "meter" }, h("span", { style: `width:${Math.round(holder.share * 100)}%` })),
+        ),
+        h("span", { class: "pct", text: `${Math.round(holder.share * 100)}%` }),
+      ));
+    }
+    const notes = [];
+    if (bb.switches) notes.push(`Changed hands ${bb.switches} time${bb.switches === 1 ? "" : "s"} across the days observed.`);
+    if (bb.daysWithoutBuyBox) notes.push(`No Buy Box at all on ${bb.daysWithoutBuyBox} day${bb.daysWithoutBuyBox === 1 ? "" : "s"}.`);
+    if (bb.fulfilment) notes.push(`Currently ships from ${bb.fulfilment}.`);
+    if (notes.length) view.append(h("p", { class: "muted", text: notes.join(" ") }));
+    if (bb.contested) {
+      view.append(h("p", { class: "muted", text: "More than one seller has held it. The share is of days observed, so it answers \"how often did I find them winning\" rather than \"how long did they win\" — those differ if you always look at the same time of day." }));
+    }
+  }
+
+  view.append(h("div", { class: "rowbtns" },
+    copyButton("Copy history", () => tracking.tsv(), "act primary"),
+    h("button", {
+      class: "act", text: "Forget this ASIN",
+      onclick: e => {
+        tracking.onForget?.();
+        e.target.textContent = "Forgotten";
+        e.target.disabled = true;
+      },
+    }),
+  ));
+  view.append(h("p", { class: "muted", text: "The history is stored in this browser only. It is never uploaded — there is nowhere for it to go." }));
+}
+
 /** The product table, its context, and the ways to get it out. */
 function renderProducts(view, extraction) {
   const { rows, context, counts } = extraction;
@@ -389,7 +588,7 @@ function renderProducts(view, extraction) {
  * @returns the host element, already attached to the document
  */
 export function renderPanel(content, handlers = {}) {
-  const { report, listing, suggestions, extraction } = content;
+  const { report, listing, suggestions, extraction, tracking } = content;
   document.getElementById("ppc-listing-audit-host")?.remove();
 
   const host = h("div", { id: "ppc-listing-audit-host" });
@@ -448,15 +647,25 @@ export function renderPanel(content, handlers = {}) {
   const audit = h("div");
   const rebuild = h("div", { style: "display:none" });
   const products = h("div", { style: "display:none" });
+  const history = h("div", { style: "display:none" });
   const tabs = h("div", { class: "tabs" });
   const views = [];
   if (report) views.push({ label: "What's wrong", view: audit });
   if (suggestions) views.push({ label: "What to write", view: rebuild });
+  if (tracking) {
+    const alerts = tracking.changes
+      && (tracking.changes.seller || tracking.changes.lost || tracking.changes.price);
+    views.push({ label: alerts ? "Tracking •" : "Tracking", view: history });
+  }
   if (extraction) views.push({ label: `Products (${extraction.counts.total})`, view: products });
 
-  views[0].view.style.display = "";
+  // A Buy Box that moved is the thing worth seeing first, whatever else is open.
+  const openAt = tracking?.changes?.seller || tracking?.changes?.lost
+    ? views.findIndex(v => v.view === history) : 0;
+  const first = openAt >= 0 ? openAt : 0;
+  views[first].view.style.display = "";
   const buttons = views.map((entry, i) => h("button", {
-    class: "tab", role: "tab", "aria-selected": i === 0 ? "true" : "false", text: entry.label,
+    class: "tab", role: "tab", "aria-selected": i === first ? "true" : "false", text: entry.label,
     onclick: () => {
       views.forEach((other, j) => {
         other.view.style.display = i === j ? "" : "none";
@@ -468,6 +677,7 @@ export function renderPanel(content, handlers = {}) {
   if (views.length > 1) tabs.append(...buttons);
   body.append(tabs, ...views.map(v => v.view));
 
+  if (tracking) renderTracking(history, tracking);
   if (extraction) renderProducts(products, extraction);
   if (!report) {
     root.append(panel);
@@ -581,7 +791,7 @@ export function renderPanel(content, handlers = {}) {
  * A small score chip under the product title, for when the panel is closed.
  * The panel is the report; this is only the way back to it.
  */
-export function renderTitleBadge(report, onOpen) {
+export function renderTitleBadge(report, onOpen, alert = null) {
   document.getElementById("ppc-listing-audit-badge")?.remove();
   const anchor = document.querySelector("#productTitle")?.parentElement;
   if (!anchor) return null;
@@ -591,9 +801,14 @@ export function renderTitleBadge(report, onOpen) {
   host.style.setProperty("margin", "6px 0");
   const root = host.attachShadow({ mode: "open" });
   root.append(h("style", { text: CSS }));
+  // Something that changed since the last visit outranks the score here: the
+  // score is the same as it was, the Buy Box moving is news.
   root.append(h("span", { class: "badge", onclick: onOpen },
-    h("i", { style: `background:${toneFor(report.score)}`, text: report.score === null ? "?" : String(report.score) }),
-    `Listing score · ${report.policyFailures ? `${report.policyFailures} policy issue${report.policyFailures > 1 ? "s" : ""}` : "open audit"}`,
+    h("i", {
+      style: `background:${alert ? "#c7511f" : toneFor(report.score)}`,
+      text: report.score === null ? "?" : String(report.score),
+    }),
+    alert || `Listing score · ${report.policyFailures ? `${report.policyFailures} policy issue${report.policyFailures > 1 ? "s" : ""}` : "open audit"}`,
   ));
 
   anchor.append(host);

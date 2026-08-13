@@ -110,9 +110,58 @@ Two consequences worth knowing:
 Click the toolbar icon:
 
 - **Open the panel automatically** — off if you would rather press the button
+- **Record Buy Box and price** — on by default; builds the 90-day history
+  below from the listings you open
 - **Title character limit** — blank uses the marketplace default (200
   characters, 128 in Japan). Some categories are stricter; your listing's edit
   page in Seller Central shows the real figure.
+
+## Buy Box and price tracking
+
+Every time you open a listing, the extension records the Buy Box holder, the
+price, the fulfilment and whether there is a Buy Box at all. The **Tracking**
+tab then shows, over the last 90 days:
+
+- price now, the lowest and highest observed with the dates they happened, and
+  how many times it moved
+- a chart of the observed price, spaced by date so a gap in your visits shows
+  as a gap rather than a flat line
+- who has held the Buy Box, with a percentage each, how many times it changed
+  hands, and any days when nobody held it
+
+When the Buy Box has moved since your last visit, the panel opens on that tab
+by itself and the chip under the product title says so instead of showing the
+score. A price move does the same, more quietly.
+
+History lives in `chrome.storage.local` — this browser only. Nothing is
+uploaded; there is nowhere for it to go. **Forget this ASIN** clears one
+listing, and the whole log is capped at 400 listings and 180 days, dropping
+the least recently seen.
+
+### What the percentage actually means
+
+**It is the share of days you looked, not the share of time.** This is the
+honest limit of a tool with no server, and it is stated beside every figure in
+the panel rather than buried here.
+
+The extension sees a listing when you open the listing. It cannot poll in the
+background — that would mean requesting product pages on a timer, which is the
+one thing that puts a household IP in front of a CAPTCHA. So:
+
+- Open the listing once a day and you get a genuine daily series.
+- Open it twice in a morning and that is still one day: shares are weighted by
+  day, so a burst of refreshes cannot inflate a seller's ownership.
+- Miss a fortnight and the panel says so — the coverage line reads "observed
+  on 27 of the last 90 days", and under seven days it warns that the
+  percentages are not yet worth reading.
+
+"Held it 80% of the time" and "held it on 80% of the days you checked" diverge
+badly if you always look at the same hour and a competitor undercuts
+overnight. The panel never claims the first.
+
+If you need true continuous coverage, that is a server polling the Amazon
+Product Advertising API or SP-API on credentials — a different tool, and the
+web app in `web/` is where it would belong. Do not add it here.
 
 ## Extracting the products on a page
 
@@ -172,7 +221,7 @@ Concretely, and verifiable by grepping this folder:
 | Clicks, navigation, form submission, synthetic events | none |
 | Cookies, `localStorage`, login state | never read |
 | Declared permissions | `storage`, and nothing else |
-| Leaves the machine | three settings to your own Chrome sync — no ASINs, no listing content |
+| Leaves the machine | four settings to your own Chrome sync; the tracking history stays in local storage and is never synced or uploaded |
 
 What triggers Amazon's throttling and CAPTCHA is **request volume**: tools that
 pull hundreds of pages a minute. Zero requests cannot be rate-limited. And
@@ -197,7 +246,9 @@ a convenience:
 - auditing a list of ASINs in one run
 - fetching competitor listings in the background
 - walking search results or a catalogue
-- refreshing anything on a timer against Amazon
+- refreshing anything on a timer against Amazon — including "just keep the
+  Buy Box history up to date while I am not looking", which is the most
+  tempting one and exactly why the tracking is observation-based
 
 If you are adding one of those, that is a different tool with a different risk
 profile. Do not let it arrive by accident.
@@ -217,6 +268,7 @@ manifest.json        permissions, matched domains
 src/audit.js         the engine: rules, weights, scoring, the title correction
 src/suggest.js       the proposals: work areas, title variants, bullet plan
 src/extract.js       the product table: cards, parsing, export formats
+src/track.js         Buy Box and price history: merging, summarising, export
 src/scrape.js        reads the page — every field may return null
 src/panel.js         the injected panel, in a shadow root
 src/content.js       timing and plumbing only

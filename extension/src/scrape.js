@@ -198,6 +198,82 @@ function readRating() {
   return { rating: rating !== null && rating <= 5 ? rating : null, reviewCount };
 }
 
+/**
+ * The Buy Box: who is winning it, at what price, and whether there is one.
+ *
+ * Amazon renders this block three or four different ways depending on
+ * marketplace and offer type, so the seller name is looked for in the profile
+ * link first (it carries the seller ID, which is the only stable identifier —
+ * a store can be renamed), then in the tabular layout, then in the older
+ * merchant-info sentence.
+ *
+ * "No Buy Box" is a real state, not a read failure: when no offer wins,
+ * Amazon shows buying options instead of a buy button, and that is worth
+ * recording because it is usually why sales stopped.
+ */
+function readBuyBox() {
+  const box = document.querySelector(
+    "#desktop_buybox, #buybox, #rightCol, #tabular-buybox, #newAccordionRow"
+  );
+
+  const profile = document.querySelector(
+    "#sellerProfileTriggerId, #merchant-info a[href*='seller='], #tabular-buybox a[href*='seller=']"
+  );
+  const sellerId = (profile?.getAttribute("href") || "").match(/seller=([A-Z0-9]+)/i)?.[1] ?? null;
+
+  let seller = clean(profile?.textContent) || null;
+  let fulfilment = null;
+
+  // The tabular layout states both halves as labelled rows.
+  for (const row of document.querySelectorAll("#tabular-buybox .tabular-buybox-text, #tabular-buybox tr")) {
+    const label = clean(row.getAttribute?.("tabular-attribute-name") || row.querySelector("td")?.textContent).toLowerCase();
+    const value = clean(row.querySelector(".tabular-buybox-text-message, td:last-child")?.textContent || row.textContent);
+    if (!value) continue;
+    if (/sold by|vendu par|verkauft von|विक्रेता/.test(label) && !seller) seller = value;
+    if (/ships from|dispatches from|expédié|versand|भेजा/.test(label)) fulfilment = value;
+  }
+
+  const merchant = clean(document.querySelector("#merchant-info")?.textContent);
+  if (!seller && merchant) {
+    // "Sold by X and Fulfilled by Amazon" / "Dispatched from and sold by X."
+    const m = merchant.match(/(?:sold by|vendu par|verkauft von)\s+([^.]+?)(?:\s+and\s|\.|$)/i);
+    if (m) seller = clean(m[1]);
+  }
+  if (!fulfilment && merchant) {
+    if (/fulfilled by amazon|dispatched from.*amazon|ships from amazon/i.test(merchant)) fulfilment = "Amazon";
+    else if (/ships from and sold by|dispatched from and sold by/i.test(merchant)) fulfilment = "Seller";
+  }
+  if (!fulfilment && document.querySelector("#SOLD_BY_AMAZON, #amazonGlobal_feature_div")) fulfilment = "Amazon";
+
+  const priceText = text([
+    "#corePriceDisplay_desktop_feature_div .a-price .a-offscreen",
+    "#corePrice_feature_div .a-price .a-offscreen",
+    "#apex_desktop .a-price .a-offscreen",
+    "#priceblock_ourprice", "#priceblock_dealprice",
+    "#buybox .a-price .a-offscreen",
+  ]);
+  const listPrice = text([
+    "#corePriceDisplay_desktop_feature_div .basisPrice .a-offscreen",
+    ".basisPrice .a-offscreen", "#listPrice", "#priceblock_listprice",
+  ]);
+
+  const buyButton = document.querySelector("#add-to-cart-button, #buy-now-button");
+  const optionsOnly = document.querySelector("#buybox-see-all-buying-choices, #usedbuyBox, #unqualifiedBuyBox");
+  // Without the block at all this is a read failure; with the block but no
+  // buy button, nobody is winning it.
+  const hasBuyBox = !box && !buyButton ? null : Boolean(buyButton) && !document.querySelector("#outOfStock");
+
+  return {
+    seller: seller || null,
+    sellerId,
+    fulfilment,
+    price: priceText,
+    listPrice,
+    hasBuyBox,
+    seeAllOffers: Boolean(optionsOnly),
+  };
+}
+
 function readAvailability() {
   const el = document.querySelector("#availability, #availabilityInsideBuyBox_feature_div, #outOfStock");
   if (!el) {
@@ -237,6 +313,7 @@ export function scrapeListing() {
     reviewCount,
     price: text([".a-price .a-offscreen", "#corePrice_feature_div .a-offscreen", "#priceblock_ourprice"]),
     inStock: readAvailability(),
+    buyBox: readBuyBox(),
     attributes,
     category: text(["#wayfinding-breadcrumbs_feature_div"]),
     // The last crumb is the category Amazon itself files this under, which is

@@ -8,7 +8,7 @@
  * `storage` as its only permission. If nothing answers, there is no content
  * script there, which is itself the answer: not an Amazon page.
  */
-const DEFAULTS = { autoOpen: true, titleLimit: 0 };
+const DEFAULTS = { autoOpen: true, titleLimit: 0, tracking: true };
 
 const el = id => document.getElementById(id);
 
@@ -48,8 +48,13 @@ function ask(tabId, message) {
   el("autoOpen").checked = config.autoOpen;
   el("titleLimit").value = config.titleLimit || "";
 
+  el("tracking").checked = config.tracking;
+
   el("autoOpen").addEventListener("change", e => {
     chrome.storage.sync.set({ autoOpen: e.target.checked });
+  });
+  el("tracking").addEventListener("change", e => {
+    chrome.storage.sync.set({ tracking: e.target.checked });
   });
   el("titleLimit").addEventListener("change", e => {
     const value = parseInt(e.target.value, 10);

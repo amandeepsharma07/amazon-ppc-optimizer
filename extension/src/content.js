@@ -20,15 +20,16 @@ if (!window.__ppcListingAuditLoaded) {
   window.__ppcListingAuditLoaded = true;
 
   (async () => {
-    const [audit, scrape, panel, suggest, extract] = await Promise.all([
+    const [audit, scrape, panel, suggest, extract, track] = await Promise.all([
       import(chrome.runtime.getURL("src/audit.js")),
       import(chrome.runtime.getURL("src/scrape.js")),
       import(chrome.runtime.getURL("src/panel.js")),
       import(chrome.runtime.getURL("src/suggest.js")),
       import(chrome.runtime.getURL("src/extract.js")),
+      import(chrome.runtime.getURL("src/track.js")),
     ]);
 
-    const DEFAULTS = { autoOpen: true, titleLimit: 0 };
+    const DEFAULTS = { autoOpen: true, titleLimit: 0, tracking: true };
     let current = null;   // { listing, report, suggestions }
     let lastUrl = location.href;
 
@@ -67,9 +68,75 @@ if (!window.__ppcListingAuditLoaded) {
       panel.renderPanel(state, {
         onCopy: copyReport,
         onRerun: () => (state.report ? run({ open: true }) : refreshProducts({ open: true })),
-        onClose: () => { if (state.report) panel.renderTitleBadge(state.report, () => show(state)); },
+        onClose: () => { if (state.report) panel.renderTitleBadge(state.report, () => show(state), null); },
         onCollapse: collapsed => chrome.storage.sync.set({ collapsed }),
       });
+    }
+
+    /* ---------------- tracking ----------------
+       History is kept in chrome.storage.local: it is per-device by design and
+       far too large for sync, which caps items at 8KB. No extra permission is
+       needed for it, so the extension still holds only "storage". */
+
+    const local = {
+      get: keys => new Promise(r => chrome.storage.local.get(keys, r)),
+      set: value => new Promise(r => chrome.storage.local.set(value, r)),
+      remove: keys => new Promise(r => chrome.storage.local.remove(keys, r)),
+    };
+
+    /**
+     * Records this visit and works out what changed since the last one.
+     * Returns what the Tracking tab needs, or null when tracking is off.
+     */
+    async function record(listing, enabled) {
+      const asin = listing.asin;
+      const marketplace = listing.marketplace?.code ?? "XX";
+      if (!asin) return null;
+      const key = track.keyFor(marketplace, asin);
+      const stored = (await local.get(key))[key] ?? track.emptyRecord(asin, marketplace);
+
+      const box = listing.buyBox ?? {};
+      const observation = {
+        at: Date.now(),
+        price: extract.parsePrice(box.price ?? listing.price),
+        currency: (box.price ?? listing.price ?? "").replace(/[\d.,\s]/g, "").slice(0, 3) || null,
+        seller: box.seller ?? null,
+        sellerId: box.sellerId ?? null,
+        fulfilment: box.fulfilment ?? null,
+        hasBuyBox: box.hasBuyBox ?? null,
+        title: listing.title,
+        marketplace,
+        source: "product page",
+      };
+
+      const changes = track.whatChanged(stored, observation);
+
+      if (!enabled) {
+        // Still report on what is already stored, but add nothing to it.
+        return { summary: track.summarise(stored), changes: null, paused: true, record: stored, key };
+      }
+
+      const updated = track.mergeObservation(stored, observation);
+      await local.set({ [key]: updated });
+
+      // Keep the log from growing without bound on a browser that sees a lot.
+      const all = await local.get(null);
+      const tracked = Object.fromEntries(Object.entries(all).filter(([k]) => k.startsWith("track:")));
+      const { removed } = track.evictOldest(tracked);
+      if (removed.length) await local.remove(removed);
+
+      return { summary: track.summarise(updated), changes, paused: false, record: updated, key };
+    }
+
+    function trackingView(state) {
+      if (!state) return null;
+      return {
+        summary: state.summary,
+        changes: state.changes,
+        paused: state.paused,
+        tsv: () => track.historyToTsv(state.record, state.summary),
+        onForget: () => local.remove(state.key),
+      };
     }
 
     async function run({ open }) {
@@ -82,10 +149,18 @@ if (!window.__ppcListingAuditLoaded) {
       // The carousels down a product page are products too, so the extractor
       // runs here as well — it just excludes the page's own ASIN.
       const extraction = extract.extractProducts();
-      current = { listing, report, suggestions, extraction };
+      const tracked = await record(listing, config.tracking);
+      current = { listing, report, suggestions, extraction, tracking: trackingView(tracked) };
 
-      panel.renderTitleBadge(report, () => show(current));
-      if (open) show(current);
+      const changes = tracked?.changes;
+      const alert = changes?.seller
+        ? `Buy Box moved to ${changes.seller.to}`
+        : changes?.lost ? "Buy Box lost"
+          : changes?.price ? `Price ${changes.price.to > changes.price.from ? "up" : "down"} since your last visit`
+            : null;
+
+      panel.renderTitleBadge(report, () => show(current), alert);
+      if (open || changes?.seller || changes?.lost) show(current);
       return report;
     }
 

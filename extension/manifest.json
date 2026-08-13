@@ -58,7 +58,8 @@
         "src/scrape.js",
         "src/panel.js",
         "src/suggest.js",
-        "src/extract.js"
+        "src/extract.js",
+        "src/track.js"
       ],
       "matches": [
         "*://*.amazon.com/*",
