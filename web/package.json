@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/build-extension-zip.mjs",
+    "prebuild": "node scripts/build-extension-zip.mjs && node scripts/sync-listing-engine.mjs",
     "build": "next build",
     "start": "next start",
     "build:extension": "node scripts/build-extension-zip.mjs",
     "check:extension": "node scripts/build-extension-zip.mjs --check",
     "db:init": "node --experimental-strip-types scripts/init-db.ts",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "sync:engine": "node scripts/sync-listing-engine.mjs"
   },
   "dependencies": {
     "next": "^15.5.23",

@@ -31,6 +31,12 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M14 5.5a2.8 2.8 0 0 1 0 5.4M15 12.5c2 .6 3 2.3 3 4.5" />
     </svg>
   ),
+  build: (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M4 3.5h9l3 3V16a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 4 16z" />
+      <path d="M12.5 3.5V7H16M6.5 10h7M6.5 13h4.5" />
+    </svg>
+  ),
   extension: (
     <svg viewBox="0 0 20 20" aria-hidden="true">
       <path d="M8.4 3.4a1.6 1.6 0 0 1 3.2 0v1.1h2.6a.7.7 0 0 1 .7.7v2.6h1.1a1.6 1.6 0 0 1 0 3.2h-1.1v2.6a.7.7 0 0 1-.7.7h-2.6v1.1a1.6 1.6 0 0 1-3.2 0v-1.1H5.8a.7.7 0 0 1-.7-.7v-2.6H4a1.6 1.6 0 0 1 0-3.2h1.1V5.2a.7.7 0 0 1 .7-.7h2.6z" />
@@ -62,13 +68,27 @@ export default function AppShell({
     router.refresh();
   }
 
-  const items = [
-    { href: "/", icon: "analyze", label: "Analyze", hint: "Upload reports" },
-    { href: "/backend-keywords", icon: "keywords", label: "Backend keywords", hint: "Search Terms field" },
-    { href: "/history", icon: "history", label: "History", hint: "Past runs" },
-    { href: "/extension", icon: "extension", label: "Chrome extension", hint: "Audit listings" },
+  /* Grouped, because the menu now covers two different jobs: working out what
+     to bid, and working out what to write. */
+  const groups = [
+    {
+      title: "Advertising",
+      items: [
+        { href: "/", icon: "analyze", label: "Analyze", hint: "Upload reports" },
+        { href: "/history", icon: "history", label: "History", hint: "Past runs" },
+      ],
+    },
+    {
+      title: "Listings",
+      items: [
+        { href: "/keyword-tools", icon: "keywords", label: "Keyword processor", hint: "Clean and rank lists" },
+        { href: "/listing-builder", icon: "build", label: "Listing builder", hint: "Write with coverage" },
+        { href: "/backend-keywords", icon: "keywords", label: "Backend keywords", hint: "Search Terms field" },
+        { href: "/extension", icon: "extension", label: "Chrome extension", hint: "Audit live listings" },
+      ],
+    },
     ...(user.role === "admin"
-      ? [{ href: "/admin", icon: "team", label: "Team", hint: "Who has access" }]
+      ? [{ title: "Admin", items: [{ href: "/admin", icon: "team", label: "Team", hint: "Who has access" }] }]
       : []),
   ];
 
@@ -81,24 +101,29 @@ export default function AppShell({
         </div>
 
         <nav className="sidebar-nav" aria-label="Main">
-          {items.map(item => {
-            const active = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`nav-item${active ? " active" : ""}`}
-                aria-current={active ? "page" : undefined}
-                onClick={() => setOpen(false)}
-              >
-                <span className="nav-icon">{ICONS[item.icon]}</span>
-                <span className="nav-text">
-                  <span className="nav-label">{item.label}</span>
-                  <span className="nav-hint">{item.hint}</span>
-                </span>
-              </Link>
-            );
-          })}
+          {groups.map(group => (
+            <div key={group.title} className="nav-group">
+              <div className="nav-group-title">{group.title}</div>
+              {group.items.map(item => {
+                const active = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`nav-item${active ? " active" : ""}`}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => setOpen(false)}
+                  >
+                    <span className="nav-icon">{ICONS[item.icon]}</span>
+                    <span className="nav-text">
+                      <span className="nav-label">{item.label}</span>
+                      <span className="nav-hint">{item.hint}</span>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="sidebar-foot">

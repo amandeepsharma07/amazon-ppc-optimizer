@@ -132,6 +132,7 @@ debugging three steps later.
 | Path | What it is |
 |---|---|
 | `web/` | The multi-user web app — the thing Vercel deploys |
+| `web/src/lib/listing-engine.js` | The extension's listing rules, copied in on every build. Generated — edit `extension/src/audit.js` instead |
 | `dashboard/index.html` | The standalone single file. No server, no database; double-click to open |
 | `ppcopt/` | The Python command-line version |
 | `extension/` | The Chrome extension that audits listings on the Amazon page itself |
