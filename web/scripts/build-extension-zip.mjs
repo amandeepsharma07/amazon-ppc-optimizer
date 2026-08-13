@@ -1,5 +1,5 @@
 /**
- * Packs ../extension into public/listing-audit-extension.zip so the web app
+ * Packs ../extension into assets/listing-audit-extension.zip so the web app
  * can hand it to anyone on the team.
  *
  * Three things shape this script.
@@ -10,6 +10,11 @@
  * mean the download silently 404s after a deploy nobody thought to check. So
  * the zip is committed, and this script regenerates it whenever the extension
  * changes.
+ *
+ * **It lives in `assets/`, not `public/`.** Anything in `public/` is served to
+ * the world by URL with no session involved, and this download is behind the
+ * sign-in. A route handler reads it from here instead, and next.config traces
+ * it into the deployed function.
  *
  * **The output is deterministic.** Entries are sorted and every timestamp is
  * fixed, so identical sources produce byte-identical zips. Without that, a
@@ -28,9 +33,9 @@ import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, existsSy
 import { join, relative, sep } from "node:path";
 
 const EXTENSION = new URL("../../extension/", import.meta.url).pathname;
-const PUBLIC = new URL("../public/", import.meta.url).pathname;
-const ZIP = join(PUBLIC, "listing-audit-extension.zip");
-const INFO = join(PUBLIC, "extension-build.json");
+const ASSETS = new URL("../assets/", import.meta.url).pathname;
+const ZIP = join(ASSETS, "listing-audit-extension.zip");
+const INFO = join(ASSETS, "extension-build.json");
 
 /** The folder name the zip extracts to — what Chrome is then pointed at. */
 const ROOT = "listing-audit";
@@ -176,12 +181,12 @@ if (mode === "check") {
   console.error(
     "The committed extension archive is out of date.\n"
     + "Run:  npm run build:extension\n"
-    + "then commit web/public/listing-audit-extension.zip and extension-build.json."
+    + "then commit web/assets/listing-audit-extension.zip and extension-build.json."
   );
   process.exit(1);
 }
 
-mkdirSync(PUBLIC, { recursive: true });
+mkdirSync(ASSETS, { recursive: true });
 writeFileSync(ZIP, archive);
 writeFileSync(INFO, JSON.stringify(info, null, 2) + "\n");
-console.log(`wrote public/listing-audit-extension.zip — v${info.version}, ${files.length} files, ${(archive.length / 1024).toFixed(1)} kB`);
+console.log(`wrote assets/listing-audit-extension.zip — v${info.version}, ${files.length} files, ${(archive.length / 1024).toFixed(1)} kB`);

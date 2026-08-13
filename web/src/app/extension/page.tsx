@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import AppShell from "@/components/AppShell";
-import build from "../../../public/extension-build.json";
+import build from "../../../assets/extension-build.json";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +51,7 @@ export default async function ExtensionPage() {
           </div>
           <a
             className="btn narrow"
-            href="/listing-audit-extension.zip"
+            href="/api/extension/download"
             download
             style={{ flex: "0 0 auto" }}
           >
@@ -60,7 +60,8 @@ export default async function ExtensionPage() {
         </div>
         <p className="hint" style={{ marginBottom: 0 }}>
           Always the version currently deployed here, so downloading again after an update
-          gets you the latest. SHA-256 <code>{build.sha256.slice(0, 16)}…</code>
+          gets you the latest. The download needs a signed-in account — disabling someone on
+          the Team page revokes it too. SHA-256 <code>{build.sha256.slice(0, 16)}…</code>
         </p>
       </div>
 

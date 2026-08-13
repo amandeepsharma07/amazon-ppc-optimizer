@@ -136,7 +136,7 @@ debugging three steps later.
 | `ppcopt/` | The Python command-line version |
 | `extension/` | The Chrome extension that audits listings on the Amazon page itself |
 | `examples/` | Sample bulk and search term files for testing |
-| `web/public/listing-audit-extension.zip` | The extension, packed for the download page. Generated — never edit it by hand |
+| `web/assets/listing-audit-extension.zip` | The extension, packed for the download page. Generated — never edit by hand. Not in `public/`, so it is only reachable through the signed-in route |
 | `web/.env.local` | Your database connection. **Never committed** — deliberately in `.gitignore` |
 
 The first three share the same optimisation rules, so a change to how bids or
@@ -148,7 +148,9 @@ keywords are calculated benefits every version.
 
 There are two ways in. **For anyone else on the team**, the web app has a
 **Chrome extension** page in the menu with a download and the steps — no git,
-no repository, nothing to set up. Send them the link.
+no repository, nothing to set up. Send them the link. The download needs an
+account, so disabling someone on the Team page takes it away with everything
+else.
 
 **For you**, it is simpler to load the folder you already have. Once, after
 your first `git pull`:

@@ -18,7 +18,8 @@ There is no store listing; it is loaded from a folder.
 
 **If you do not** — sign in to the web app and open **Chrome extension** in the
 menu. It offers a zip of exactly this folder, with the install steps beside it.
-That is the route for anyone on the team who does not use git.
+That is the route for anyone on the team who does not use git; it needs an
+account, so access follows the Team page.
 
 Open any Amazon product page. The panel appears once the title and gallery
 have rendered. If you have closed it, a small score chip sits under the
