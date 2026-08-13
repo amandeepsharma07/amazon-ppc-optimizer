@@ -270,3 +270,19 @@ td.ell { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
   border-color: var(--good); color: var(--ink); background: var(--good-bg);
 }
 .word-toggle.keeping .word-state { background: var(--good); color: var(--surface); }
+
+/* ---- Chrome extension page ---- */
+a.btn { display: inline-block; text-decoration: none; text-align: center; }
+ol.steps { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6; }
+ol.steps li { margin: 6px 0; }
+code {
+  background: var(--surface-2); border-radius: 4px; padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+}
+.feature-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.feature { border: 1px solid var(--line); border-radius: 8px; padding: 11px 13px; }
+.feature b { display: block; font-size: 13px; margin-bottom: 3px; }
+.feature p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; }

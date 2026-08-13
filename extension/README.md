@@ -10,19 +10,24 @@ whether it is yours or a competitor's.
 
 ## Installing it
 
-There is no store listing; you load it from this folder.
+There is no store listing; it is loaded from a folder.
 
-1. Open **`chrome://extensions`**
-2. Turn on **Developer mode** (top right)
-3. Click **Load unpacked**
-4. Choose the **`extension`** folder from this repository
+**If you have the repository** — open **`chrome://extensions`**, turn on
+**Developer mode** (top right), click **Load unpacked**, and choose this
+**`extension`** folder.
+
+**If you do not** — sign in to the web app and open **Chrome extension** in the
+menu. It offers a zip of exactly this folder, with the install steps beside it.
+That is the route for anyone on the team who does not use git.
 
 Open any Amazon product page. The panel appears once the title and gallery
 have rendered. If you have closed it, a small score chip sits under the
 product title to bring it back.
 
-After a `git pull` that changed the extension, press the reload arrow on the
-card in `chrome://extensions`, then refresh the Amazon tab.
+After updating — a `git pull`, or a fresh download from the web app — press the
+reload arrow on the card in `chrome://extensions`, then refresh the Amazon tab.
+Chrome runs the old copy until told otherwise, and skipping this looks exactly
+like the extension being broken.
 
 ## What it scores
 

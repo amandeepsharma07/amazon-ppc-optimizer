@@ -111,6 +111,7 @@ with `Ctrl` + `C`. After a `git pull` that changed dependencies, run
 | `npm error ... package.json` not found | You're in the wrong folder | `cd` into `web` first |
 | Red **1 Issue** badge about hydration | A browser extension (Grammarly) edited the page | Ignore it — already suppressed in current code |
 | Vercel build fails immediately | Root Directory isn't set to `web` | Vercel → Settings → General → Root Directory → `web` |
+| Build stops: "committed extension archive is out of date" | The extension changed but the download wasn't rebuilt | `cd web`, `npm run build:extension`, commit what it writes |
 | "Database not connected" | `DATABASE_URL` missing or wrong | The page names the exact error; fix it in Vercel → Settings → Environment Variables |
 
 ### Two habits that avoid most of it
@@ -135,6 +136,7 @@ debugging three steps later.
 | `ppcopt/` | The Python command-line version |
 | `extension/` | The Chrome extension that audits listings on the Amazon page itself |
 | `examples/` | Sample bulk and search term files for testing |
+| `web/public/listing-audit-extension.zip` | The extension, packed for the download page. Generated — never edit it by hand |
 | `web/.env.local` | Your database connection. **Never committed** — deliberately in `.gitignore` |
 
 The first three share the same optimisation rules, so a change to how bids or
@@ -144,8 +146,12 @@ keywords are calculated benefits every version.
 
 ## Part 4 — The Chrome extension
 
-It is not deployed anywhere; it is loaded from the folder on your PC. Once,
-after your first `git pull`:
+There are two ways in. **For anyone else on the team**, the web app has a
+**Chrome extension** page in the menu with a download and the steps — no git,
+no repository, nothing to set up. Send them the link.
+
+**For you**, it is simpler to load the folder you already have. Once, after
+your first `git pull`:
 
 1. Open **`chrome://extensions`**
 2. Turn on **Developer mode**, top right
@@ -157,6 +163,12 @@ Then open any Amazon product page and the panel appears on the right.
 After a `git pull` that changed it, press the **reload arrow** on its card in
 `chrome://extensions` and refresh the Amazon tab. That step is easy to forget
 and looks exactly like the extension being broken.
+
+The download on the web app is rebuilt from the extension folder, and the web
+build **fails** if the two have drifted — so what the team downloads is always
+what is in the repository. If a build stops with "the committed extension
+archive is out of date", run `npm run build:extension` in `web` and commit what
+it writes.
 
 | What you see | What to do |
 |---|---|

@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/build-extension-zip.mjs --check",
     "build": "next build",
     "start": "next start",
+    "build:extension": "node scripts/build-extension-zip.mjs",
     "db:init": "node --experimental-strip-types scripts/init-db.ts",
     "test": "node --experimental-strip-types --test tests/*.test.ts"
   },

@@ -31,6 +31,11 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M14 5.5a2.8 2.8 0 0 1 0 5.4M15 12.5c2 .6 3 2.3 3 4.5" />
     </svg>
   ),
+  extension: (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M8.4 3.4a1.6 1.6 0 0 1 3.2 0v1.1h2.6a.7.7 0 0 1 .7.7v2.6h1.1a1.6 1.6 0 0 1 0 3.2h-1.1v2.6a.7.7 0 0 1-.7.7h-2.6v1.1a1.6 1.6 0 0 1-3.2 0v-1.1H5.8a.7.7 0 0 1-.7-.7v-2.6H4a1.6 1.6 0 0 1 0-3.2h1.1V5.2a.7.7 0 0 1 .7-.7h2.6z" />
+    </svg>
+  ),
 };
 
 export interface NavUser {
@@ -61,6 +66,7 @@ export default function AppShell({
     { href: "/", icon: "analyze", label: "Analyze", hint: "Upload reports" },
     { href: "/backend-keywords", icon: "keywords", label: "Backend keywords", hint: "Search Terms field" },
     { href: "/history", icon: "history", label: "History", hint: "Past runs" },
+    { href: "/extension", icon: "extension", label: "Chrome extension", hint: "Audit listings" },
     ...(user.role === "admin"
       ? [{ href: "/admin", icon: "team", label: "Team", hint: "Who has access" }]
       : []),
