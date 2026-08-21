@@ -315,13 +315,18 @@ export function scrapeListing() {
     inStock: readAvailability(),
     buyBox: readBuyBox(),
     attributes,
-    category: text(["#wayfinding-breadcrumbs_feature_div"]),
-    // The last crumb is the category Amazon itself files this under, which is
-    // usually the plainest available name for what the product is.
-    categoryLeaf: (() => {
+    ...(() => {
+      // Read crumb by crumb. The container's own textContent runs the links
+      // together — "Bags & LuggageLaptop Backpacks" — and the join then reads
+      // as one invented word, which ends up in the backend keywords.
       const crumbs = [...document.querySelectorAll("#wayfinding-breadcrumbs_feature_div a")]
         .map(a => clean(a.textContent)).filter(Boolean);
-      return crumbs.length ? crumbs[crumbs.length - 1] : null;
+      return {
+        category: crumbs.length ? crumbs.join(" > ") : null,
+        // The last crumb is the category Amazon itself files this under, and
+        // usually the plainest available name for what the product is.
+        categoryLeaf: crumbs.length ? crumbs[crumbs.length - 1] : null,
+      };
     })(),
   };
 }

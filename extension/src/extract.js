@@ -152,24 +152,78 @@ const TITLE_SELECTORS = [
   "a.a-link-normal[title]",
 ];
 
-function cardTitle(card) {
+/** Text that is definitely not a product title, however long it runs. */
+const NOT_A_TITLE = [
+  /^[₹$€£¥]/,                                       // a price
+  /out of 5|\bratings?$|\breviews?$/i,
+  /^(sponsored|best ?seller|amazon'?s choice|limited time deal|deal of the day)$/i,
+  /^(add to cart|buy now|see options|view details|shop now|see all)/i,
+  /^\d[\d,.]*$/,                                    // a bare number
+  /^(free delivery|get it by|fastest delivery|in stock|currently unavailable|only \d+ left)/i,
+  /^(save extra|coupon|\d+% off|m\.r\.p)/i,
+];
+
+const looksLikeTitle = (text) =>
+  text.length >= 15 && text.length <= 400 && !NOT_A_TITLE.some(re => re.test(text));
+
+/**
+ * The longest sensible text in the card.
+ *
+ * Class names are the least stable thing on an Amazon page — several are
+ * build-hashed, and sponsored carousels differ from organic results — so when
+ * every named selector misses, the shape of the content is the better guide.
+ * A product title is the longest run of text in a card that is not a price, a
+ * rating, a badge or a button.
+ */
+function longestText(card) {
+  let best = "";
+  for (const el of card.querySelectorAll("span, div, a, p, h2, h3")) {
+    // Leaf-ish only, or a wrapper's concatenated children would always win.
+    if (el.querySelector("span, div, a, p, h2, h3")) continue;
+    const value = clean(el.textContent);
+    if (looksLikeTitle(value) && value.length > best.length) best = value;
+  }
+  return best || null;
+}
+
+function titleWithin(card) {
   for (const selector of TITLE_SELECTORS) {
     for (const el of card.querySelectorAll(selector)) {
       const value = clean(el.textContent) || clean(el.getAttribute?.("title"));
-      // Badges and prices sit in similarly-named elements; a real title is longer.
-      if (value && value.length > 12) return value;
+      if (value && looksLikeTitle(value)) return value;
     }
   }
-  const titled = card.querySelector("a[title]");
-  if (titled) {
-    const value = clean(titled.getAttribute("title"));
-    if (value.length > 12) return value;
+  // Sponsored cards commonly carry the whole title on the link or the image,
+  // for screen readers, even when the visible text is truncated away.
+  for (const el of card.querySelectorAll("a[aria-label], a[title], img[alt]")) {
+    const value = clean(
+      el.getAttribute("aria-label") || el.getAttribute("title") || el.getAttribute("alt")
+    );
+    if (looksLikeTitle(value)) return value;
   }
-  // Carousels frequently carry the full title as the image's alt text.
-  const img = card.querySelector("img[alt]");
-  const alt = clean(img?.getAttribute("alt"));
-  return alt && alt.length > 12 ? alt : null;
+  return longestText(card);
 }
+
+/**
+ * The element that actually holds this product's details.
+ *
+ * The element carrying data-asin is frequently just the image wrapper, with
+ * the title, price and rating as its *siblings* — which is why a carousel
+ * yielded ASINs and nothing else. The scope widens until it contains a title,
+ * and stops before it could swallow a neighbouring product.
+ */
+function resolveScope(card) {
+  let scope = card;
+  for (let up = 0; up < 4 && scope; up++) {
+    if (titleWithin(scope)) return scope;
+    const parent = scope.parentElement;
+    if (!parent || parent.querySelectorAll("[data-asin]").length > 1) break;
+    scope = parent;
+  }
+  return card;
+}
+
+const cardTitle = card => titleWithin(card);
 
 function cardRating(card) {
   const alt = card.querySelector(".a-icon-alt");
@@ -204,7 +258,13 @@ function cardReviews(card) {
 function cardPrice(card) {
   const offscreen = card.querySelector(".a-price .a-offscreen, .a-color-price .a-offscreen");
   if (offscreen) return clean(offscreen.textContent);
+  // Some cards render the price as ordinary text with no price markup at all.
+  const plain = [...card.querySelectorAll("span, div")]
+    .filter(el => !el.querySelector("span, div"))
+    .map(el => clean(el.textContent))
+    .find(t => /^[₹$€£¥]\s?[\d,.]+$/.test(t));
   const whole = card.querySelector(".a-price-whole");
+  if (!whole && plain) return plain;
   if (whole) {
     const symbol = clean(card.querySelector(".a-price-symbol")?.textContent);
     const fraction = clean(card.querySelector(".a-price-fraction")?.textContent);
@@ -282,11 +342,13 @@ export function extractProducts(options = {}) {
 
   for (const { asin, element } of productCards()) {
     if (!options.includeSelf && asin === selfAsin) continue;
-    const title = cardTitle(element);
+    // Widen once, then read every field from the same scope.
+    const scope = resolveScope(element);
+    const title = cardTitle(scope);
     // A data-asin with nothing readable in it is a placeholder, not a product.
-    const price = cardPrice(element);
-    const rating = cardRating(element);
-    const reviews = cardReviews(element);
+    const price = cardPrice(scope);
+    const rating = cardRating(scope);
+    const reviews = cardReviews(scope);
     if (!title && price === null && rating === null) continue;
 
     rows.push({
@@ -297,8 +359,8 @@ export function extractProducts(options = {}) {
       priceValue: parsePrice(price),
       rating,
       reviews,
-      sponsored: cardSponsored(element),
-      badge: cardBadge(element),
+      sponsored: cardSponsored(scope),
+      badge: cardBadge(scope),
       browseNodeId: node?.id ?? null,
       browseNodePath: node?.path ?? null,
       url: `https://${location.hostname}/dp/${asin}`,

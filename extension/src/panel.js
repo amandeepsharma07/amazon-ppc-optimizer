@@ -753,6 +753,22 @@ export function renderPanel(content, handlers = {}) {
     rebuild.append(h("p", { class: "muted", text: "Candidates, not instructions — whether one belongs in the title is a judgement about the product. The keyword-heavy variant above already uses the strongest few." }));
   }
 
+  if (suggestions.backend) {
+    const b = suggestions.backend;
+    rebuild.append(h("h3", { class: "sec", text: "Backend search terms" }));
+    if (b.text) {
+      rebuild.append(h("div", { class: "rewrite" },
+        h("p", { class: "txt", text: b.text }),
+        h("p", { class: "meta", text: `${b.bytes} of ${b.limit} bytes · ${b.included.length} words` }),
+        copyButton("Copy the field", () => b.text),
+      ));
+    }
+    rebuild.append(h("p", { class: "muted", text: b.note }));
+    if (b.refused.length) {
+      rebuild.append(h("p", { class: "muted", text: `Left out on policy: ${b.refused.map(r => r.word).join(", ")}.` }));
+    }
+  }
+
   rebuild.append(h("h3", { class: "sec", text: `Bullet plan — ${suggestions.bullets.covered} of 5 slots filled` }));
   if (suggestions.bullets.blocked) {
     rebuild.append(h("div", {

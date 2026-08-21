@@ -174,6 +174,100 @@ function assemble(head, tail, limit) {
   return render().replace(/\s{2,}/g, " ");
 }
 
+/** Words too ordinary to anchor a title fragment. */
+const WEAK = new Set([
+  "the", "and", "for", "with", "that", "this", "from", "into", "your", "you",
+  "are", "was", "has", "have", "not", "but", "its", "it", "of", "to", "in",
+  "on", "at", "by", "so", "if", "or", "as", "is", "be", "them", "they", "does",
+  "each", "when", "where", "which", "while", "than", "then", "there", "here",
+  "keeps", "keep", "make", "makes", "take", "takes", "get", "gets", "one",
+  "two", "more", "most", "very", "just", "also", "even", "still", "over",
+  // Verbs and connectives. A fragment ending in one reads as a clipped
+  // sentence — "Coated Backing Sheds" — not as a title segment.
+  "sheds", "shed", "gives", "give", "holds", "hold", "spread", "spreads",
+  "sits", "sit", "adds", "add", "fits", "fit", "works", "work", "helps",
+  "help", "lets", "let", "both", "away", "across", "between", "without",
+  "rather", "instead", "before", "after", "under", "around", "through",
+  // Units are meaningless detached from their number: "15.6 inch" is a fact,
+  // "Inch" on its own is noise in a title.
+  "inch", "inches", "cm", "mm", "litre", "litres", "liter", "liters", "kg",
+  "gram", "grams", "ltr", "ml", "size", "sizes",
+]);
+
+/**
+ * Two- and three-word fragments the listing's own copy uses and its title does
+ * not.
+ *
+ * Titles are topped up from these rather than from loose words, because
+ * "Padded Laptop Sleeve" reads as a title and "padded sleeve organiser
+ * ventilated" reads as stuffing. Each fragment is the seller's own phrasing
+ * lifted whole out of their bullets or description — nothing is composed.
+ */
+export function phraseGaps(listing, take = 12) {
+  const inTitle = new Set(wordsOf(listing.title || "").map(SINGULAR));
+  const source = [...(listing.bullets || []), listing.description || ""].join(". ");
+  const counts = new Map();
+
+  for (const clause of source.split(/[.,;:!?()—]+/)) {
+    const words = wordsOf(clause);
+    for (let n = 3; n >= 2; n--) {
+      for (let i = 0; i + n <= words.length; i++) {
+        const slice = words.slice(i, i + n);
+        // Substantial at both ends, and saying something the title does not.
+        if (slice.some(w => w.length < 3 || WEAK.has(w))) continue;
+        if (slice.every(w => inTitle.has(SINGULAR(w)))) continue;
+        const key = slice.join(" ");
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+  }
+
+  const ranked = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length || a[0].localeCompare(b[0]));
+
+  // Drop a fragment contained in one already kept, so a title cannot carry
+  // both "laptop sleeve" and "padded laptop sleeve".
+  const kept = [];
+  for (const [phrase] of ranked) {
+    if (kept.some(k => k.includes(phrase) || phrase.includes(k))) continue;
+    kept.push(phrase);
+    if (kept.length >= take) break;
+  }
+  return kept;
+}
+
+/**
+ * Fills the space a title leaves unused.
+ *
+ * Assembled from three attributes, a title lands near 90 characters against a
+ * 200-character field, and the missing 110 are the cheapest indexing on the
+ * page. Fragments go in only while they fit whole, and the colour — last by
+ * convention — keeps its place at the end.
+ */
+function topUp(head, tail, pool, limit) {
+  const spoken = new Set([...head, ...tail].flatMap(part => wordsOf(part).map(SINGULAR)));
+  const width = parts => head.join(" ").length + (parts.length ? 2 : 0) + parts.join(", ").length;
+
+  const trailing = tail.length > 1 ? tail.slice(-1) : [];
+  const body = tail.length > 1 ? tail.slice(0, -1) : tail.slice();
+
+  // Four is the ceiling. A real title runs to five or six comma-separated
+  // segments; past that it stops reading as a description of a product and
+  // starts reading as a list of words, which is what shoppers skip.
+  let added = 0;
+  for (const phrase of pool) {
+    if (added >= 4) break;
+    const words = wordsOf(phrase).map(SINGULAR);
+    if (words.every(w => spoken.has(w))) continue;
+    const candidate = titleCase(phrase);
+    if (width([...body, candidate, ...trailing]) > limit) continue;
+    body.push(candidate);
+    for (const w of words) spoken.add(w);
+    added += 1;
+  }
+  return [...body, ...trailing];
+}
+
 const VARIANTS = [
   {
     id: "feature",
@@ -214,6 +308,8 @@ export function titleVariants(listing, options = {}) {
   const brand = listing.brand;
 
   const gaps = keywordGaps(listing, 8).map(g => g.word);
+  // The pool every variant fills its unused characters from.
+  const pool = phraseGaps(listing);
   const missing = [];
   if (!brand) missing.push("the brand — it could not be read from the page");
   if (!type) missing.push("a product type — neither the title nor the breadcrumb gave one");
@@ -239,16 +335,19 @@ export function titleVariants(listing, options = {}) {
       if (raw) tail.push(phrase(role, raw));
     }
     if (variant.gapsFirst && gaps.length) {
-      // The seller's own words, taken from copy further down the page. Built
-      // after the attributes so a word the attributes already supply is not
-      // spent twice — "Canvas Sleeve" alongside a "Canvas" material is the
+      // The keyword variant leads with them; every variant is topped up below.
+      // Built after the attributes so a word the attributes already supply is
+      // not spent twice — "Canvas Sleeve" beside a "Canvas" material is the
       // repetition the audit itself penalises.
       const spoken = new Set([...head, ...tail].flatMap(part => wordsOf(part).map(SINGULAR)));
       const fresh = gaps.filter(word => !spoken.has(SINGULAR(word))).slice(0, 4);
       if (fresh.length) tail.unshift(titleCase(fresh.join(" ")));
     }
 
-    const assembled = localiseSpelling(assemble(head, tail, limit), code);
+    // A title short of the field is indexing left on the table, so the room is
+    // filled from the listing's own phrasing rather than left empty.
+    const filled = topUp(head, tail, pool, limit);
+    const assembled = localiseSpelling(assemble(head, filled, limit), code);
     // The same corrections the audit would demand, applied before it is shown.
     const corrected = cleanTitle(assembled, brand, limit);
     const text = corrected.text;
@@ -525,11 +624,101 @@ export function workAreas(report, listing) {
 }
 
 /** Everything the panel adds below the audit, in one call. */
+/* ------------------------------------------------------------------ *
+ * Backend search terms
+ * ------------------------------------------------------------------ */
+
+/** Size of the hidden Search Terms field, in bytes, per marketplace. */
+const BYTE_LIMITS = { IN: 200, JP: 500 };
+const DEFAULT_BYTES = 250;
+
+const byteLength = text => new TextEncoder().encode(text).length;
+
+/**
+ * The hidden Search Terms field, built from what the page itself is missing.
+ *
+ * The rule that governs this field is that a word already in the title,
+ * bullets or description is *already indexed* — spending bytes on it again
+ * buys nothing. So the candidates are the opposite of what the title should
+ * carry: words the product plainly relates to that the visible copy never
+ * says. On a product page, that means the attribute values and the category,
+ * which sellers routinely leave out of their prose.
+ *
+ * This is narrower than the web app's version, which reads the search term
+ * report and therefore knows the words shoppers actually typed. What that one
+ * has and this cannot is demand data; what this has is that it works on any
+ * listing, including a competitor's, with nothing to upload.
+ */
+export function backendKeywords(listing, options = {}) {
+  const code = listing.marketplace?.code || "US";
+  const limit = options.byteLimit || BYTE_LIMITS[code] || DEFAULT_BYTES;
+
+  // Everything the page already says, and therefore already indexes.
+  const indexed = new Set(
+    [listing.title, ...(listing.bullets || []), listing.description, listing.brand]
+      .flatMap(part => wordsOf(part || ""))
+      .map(SINGULAR)
+  );
+
+  const { byRole, unclassified } = classifyAttributes(listing.attributes);
+  const candidates = new Map();
+  const add = (word, source) => {
+    const key = SINGULAR(word.toLowerCase());
+    if (key.length < 3 || WEAK.has(key) || indexed.has(key)) return;
+    if (/^\d+$/.test(key)) return;
+    if (!candidates.has(key)) candidates.set(key, { word: key, source });
+  };
+
+  // Attribute values first: stated facts the prose usually skips.
+  for (const [role, pair] of byRole) {
+    for (const word of wordsOf(pair.value)) add(word, `${role} attribute`);
+  }
+  for (const pair of unclassified) {
+    for (const word of wordsOf(pair.value)) add(word, "attribute");
+  }
+  // Then the category Amazon files it under.
+  for (const word of wordsOf(listing.categoryLeaf || "")) add(word, "category");
+  for (const word of wordsOf(listing.category || "")) add(word, "breadcrumb");
+
+  // Anything policy would refuse must never reach the field.
+  const kept = [];
+  const refused = [];
+  for (const entry of candidates.values()) {
+    const issues = policyIssues(entry.word, listing.brand);
+    if (issues.length) refused.push({ ...entry, reason: issues[0].why });
+    else kept.push(entry);
+  }
+
+  // Pack greedily; a space is only needed between words.
+  const included = [];
+  const noRoom = [];
+  let bytes = 0;
+  for (const entry of kept) {
+    const cost = byteLength(entry.word) + (included.length ? 1 : 0);
+    if (bytes + cost <= limit) { bytes += cost; included.push(entry); }
+    else noRoom.push(entry);
+  }
+
+  return {
+    text: included.map(e => e.word).join(" "),
+    bytes,
+    limit,
+    included,
+    refused,
+    noRoom,
+    // Said plainly, because a nearly-empty field here is a finding, not a fault.
+    note: included.length
+      ? "Built from attribute values and the category — words this listing relates to that its own copy never says, and which are therefore not indexed yet."
+      : "Nothing to add: every word the page states is already in the visible copy, so it is already indexed. The words worth adding are the ones shoppers type, which live in your search term report — build the field in the web app.",
+  };
+}
+
 export function buildSuggestions(report, listing, options = {}) {
   return {
     areas: workAreas(report, listing),
     titles: titleVariants(listing, options),
     bullets: bulletPlan(listing),
+    backend: backendKeywords(listing, options),
   };
 }
 
@@ -554,6 +743,13 @@ export function suggestionsToText(suggestions) {
   if (missing.length) {
     lines.push("Assembled from the page only — nothing invented. Still missing:");
     for (const m of missing) lines.push(`  - ${m}`);
+    lines.push("");
+  }
+
+  if (suggestions.backend?.text) {
+    lines.push("BACKEND SEARCH TERMS", "");
+    lines.push(suggestions.backend.text);
+    lines.push(`  ${suggestions.backend.bytes} of ${suggestions.backend.limit} bytes`);
     lines.push("");
   }
 
