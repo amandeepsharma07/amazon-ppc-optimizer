@@ -216,7 +216,16 @@ function fromJson(payload: any): ParseOutcome {
   }
 
   for (const record of byTerm.values()) {
-    record.asins.sort((a, b) => a.position - b.position);
+    /* The same term is listed once per department, and the departments often
+       name the same clicked ASIN — so merging their rows produces duplicates.
+       Left in, those become duplicate keys in one INSERT, which Postgres
+       refuses outright, losing the whole batch rather than the stray row. */
+    const unique = new Map<string, ClickedAsin>();
+    for (const asin of record.asins) {
+      const existing = unique.get(asin.asin);
+      if (!existing || asin.position < existing.position) unique.set(asin.asin, asin);
+    }
+    record.asins = [...unique.values()].sort((a, b) => a.position - b.position);
   }
 
   return {

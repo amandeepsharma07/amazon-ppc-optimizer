@@ -363,3 +363,16 @@ details.upload-fold[open] > summary::before { transform: rotate(90deg); }
 details.upload-fold > div > .card {
   border: 0; box-shadow: none; padding: 0; background: transparent;
 }
+
+/* ---- clients ---- */
+.chips-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.clientchip {
+  display: flex; flex-direction: column; gap: 2px; text-decoration: none;
+  border: 1px solid var(--line); border-radius: 9px; padding: 8px 13px;
+  background: var(--surface); color: var(--ink); font-size: 13.5px; font-weight: 600;
+}
+.clientchip span { font-size: 11px; color: var(--muted); font-weight: 400; }
+.clientchip:hover { background: var(--surface-2); }
+.clientchip.on { border-color: var(--accent); background: var(--surface-2); }
+.clientchip.on span { color: var(--accent); }
+td.mono-cell { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }

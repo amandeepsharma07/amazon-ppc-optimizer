@@ -301,3 +301,22 @@ test("the wrong report is named as the wrong report", () => {
   assert.equal(out.rows.length, 0);
   assert.match(out.note!, /Top Search Terms/);
 });
+
+test("a report repeating the same term does not collapse the import", () => {
+  // Brand Analytics lists a search once per department, so the same term
+  // arrives several times with different ranks and different clicked ASINs.
+  // Left alone, those become duplicate keys in one INSERT, and Postgres
+  // refuses the whole statement — losing a batch of thousands of rows.
+  const repeated = JSON.stringify({
+    dataByDepartmentAndSearchTerm: [
+      { departmentName: "Luggage", searchTerm: "laptop bag", searchFrequencyRank: 412, clickedAsin1: "B0AAAA1111" },
+      { departmentName: "Electronics", searchTerm: "laptop bag", searchFrequencyRank: 120, clickedAsin1: "B0BBBB2222" },
+      { departmentName: "Office", searchTerm: "laptop bag", searchFrequencyRank: 900, clickedAsin1: "B0AAAA1111" },
+    ],
+  });
+  const out = parseSearchTermsReport(repeated);
+  assert.equal(out.rows.length, 1, "one term, however many departments listed it");
+  const row = out.rows[0];
+  // Every ASIN named for the term is kept, each only once.
+  assert.deepEqual(row.asins.map(a => a.asin).sort(), ["B0AAAA1111", "B0BBBB2222"]);
+});

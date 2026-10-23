@@ -104,6 +104,28 @@ CREATE TABLE IF NOT EXISTS search_term_asins (
   PRIMARY KEY (marketplace, period_start, search_term, asin)
 );
 CREATE INDEX IF NOT EXISTS search_term_asins_asin_idx ON search_term_asins (marketplace, asin);
+
+/* Clients, and the ASINs that belong to each. An agency works a portfolio,
+   not a product: the question is almost never "how is this ASIN doing" but
+   "how is this client doing", and that needs the grouping stated somewhere. */
+CREATE TABLE IF NOT EXISTS clients (
+  id          BIGSERIAL PRIMARY KEY,
+  name        TEXT NOT NULL,
+  marketplace TEXT NOT NULL DEFAULT 'IN',
+  notes       TEXT NOT NULL DEFAULT '',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by  TEXT NOT NULL DEFAULT ''
+);
+CREATE UNIQUE INDEX IF NOT EXISTS clients_name_idx ON clients (lower(name), marketplace);
+
+CREATE TABLE IF NOT EXISTS client_asins (
+  client_id BIGINT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  asin      TEXT NOT NULL,
+  label     TEXT NOT NULL DEFAULT '',
+  added_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (client_id, asin)
+);
+CREATE INDEX IF NOT EXISTS client_asins_asin_idx ON client_asins (asin);
 `;
 
 let schemaReady = false;

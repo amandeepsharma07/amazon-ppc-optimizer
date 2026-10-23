@@ -31,6 +31,13 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M14 5.5a2.8 2.8 0 0 1 0 5.4M15 12.5c2 .6 3 2.3 3 4.5" />
     </svg>
   ),
+  clients: (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <rect x="2.5" y="7" width="7" height="10" rx="1" />
+      <rect x="10.5" y="3" width="7" height="14" rx="1" />
+      <path d="M5 10h2M5 13h2M13 6h2M13 9h2M13 12h2" />
+    </svg>
+  ),
   search: (
     <svg viewBox="0 0 20 20" aria-hidden="true">
       <circle cx="8.5" cy="8.5" r="5" />
@@ -92,6 +99,7 @@ export default function AppShell({
     {
       title: "Listings",
       items: [
+        { href: "/clients", icon: "clients", label: "Clients", hint: "Portfolios and ASINs" },
         { href: "/keyword-research", icon: "search", label: "Keyword research", hint: "Magnet and Cerebro" },
         { href: "/keyword-tools", icon: "keywords", label: "Keyword processor", hint: "Clean and rank lists" },
         { href: "/listing-builder", icon: "build", label: "Listing builder", hint: "Write with coverage" },

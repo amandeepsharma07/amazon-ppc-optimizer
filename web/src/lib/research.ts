@@ -6,7 +6,7 @@ import {
   MARKETPLACE_IDS, SEARCH_TERMS_REPORT, SpApiError, forgetTokens, reportDocument,
   reportStatus, requestReport, type ReportPeriod, type SpApiConfig,
 } from "./spapi";
-import { parseSearchTermsReport } from "./brand-analytics";
+import { parseSearchTermsReport, type SearchTermRecord } from "./brand-analytics";
 
 /**
  * The server side of keyword research: credentials, the pull, and the queries
@@ -254,20 +254,75 @@ export async function importText(
     };
   }
 
+  await storeSearchTermRows(marketplace, periodStart, parsed.rows);
+
+  const note = `Stored ${parsed.rows.length} search terms for the period starting ${periodStart}`
+    + (parsed.skipped ? `, skipped ${parsed.skipped} incomplete rows` : "")
+    + ` (${parsed.shape} format).`;
+  return { rows: parsed.rows.length, note, periodStart, shape: parsed.shape, skipped: parsed.skipped };
+}
+
+/**
+ * Writes parsed rows. Called by the scheduled pull and, in batches, by the
+ * browser when somebody uploads the report by hand.
+ *
+ * Batched because a marketplace week runs to hundreds of thousands of terms
+ * and one statement per row would exhaust the connection budget.
+ */
+export async function storeSearchTermRows(
+  marketplace: string, periodStart: string, incoming: SearchTermRecord[]
+): Promise<number> {
+  await ensureSchema();
+
+  /* Postgres refuses an INSERT whose ON CONFLICT target is hit twice by the
+     same statement, so a term repeated inside one batch takes the whole batch
+     down with it. Reports do repeat terms — the same search can be listed once
+     per department — so the keys are made unique here rather than hoped about.
+     The lower rank wins, being the more searched reading of the two. */
+  const byTerm = new Map<string, SearchTermRecord>();
+  for (const row of incoming) {
+    const existing = byTerm.get(row.searchTerm);
+    if (!existing) { byTerm.set(row.searchTerm, row); continue; }
+    const keep = row.rank < existing.rank ? row : existing;
+    const other = keep === row ? existing : row;
+    // Keep every ASIN seen for the term, whichever copy named it.
+    const asins = new Map(keep.asins.map(a => [a.asin, a]));
+    for (const a of other.asins) if (!asins.has(a.asin)) asins.set(a.asin, a);
+    byTerm.set(row.searchTerm, { ...keep, asins: [...asins.values()] });
+  }
+
+  const rows = [...byTerm.values()].map(row => {
+    const seen = new Map<string, typeof row.asins[number]>();
+    for (const a of row.asins) if (!seen.has(a.asin)) seen.set(a.asin, a);
+    return seen.size === row.asins.length ? row : { ...row, asins: [...seen.values()] };
+  });
   // Written in batches: a marketplace week can run to hundreds of thousands of
   // terms, and one statement per row would exhaust the connection budget.
   const CHUNK = 500;
-  for (let i = 0; i < parsed.rows.length; i += CHUNK) {
-    const slice = parsed.rows.slice(i, i + CHUNK);
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK);
     const values: unknown[] = [];
     const terms = slice.map((row, n) => {
       values.push(marketplace, periodStart, row.searchTerm, row.department, row.rank);
       const b = n * 5;
-      return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5})`;
+      // The first row carries the casts; a VALUES list takes its types from it.
+      return n === 0
+        ? `($${b + 1}::text, $${b + 2}::date, $${b + 3}::text, $${b + 4}::text, $${b + 5}::int)`
+        : `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5})`;
     });
+    /* DISTINCT ON rather than trusting the rows to be unique. Postgres refuses
+       a statement whose ON CONFLICT target is hit twice, and a report repeats
+       terms freely — the same search listed under several departments. The
+       rows are deduplicated in JavaScript above too, but only this is enforced
+       by the database, and only the database's opinion of "the same row"
+       actually matters. The lower rank wins, being the more searched reading. */
     await query(
       `INSERT INTO search_terms (marketplace, period_start, search_term, department, rank)
-       VALUES ${terms.join(",")}
+       SELECT DISTINCT ON (marketplace, period_start, search_term)
+              marketplace, period_start, search_term, department, rank
+         FROM (VALUES ${terms.join(",")})
+           AS v(marketplace, period_start, search_term, department, rank)
+        ORDER BY marketplace, period_start, search_term, rank ASC
        ON CONFLICT (marketplace, period_start, search_term)
        DO UPDATE SET rank = EXCLUDED.rank, department = EXCLUDED.department`,
       values
@@ -282,14 +337,20 @@ export async function importText(
           marketplace, periodStart, row.searchTerm, asin.asin,
           asin.position, asin.title ?? null, asin.clickShare ?? null, asin.conversionShare ?? null
         );
-        asinRows.push(`($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7}, $${b + 8})`);
+        asinRows.push(asinRows.length === 0
+          ? `($${b + 1}::text, $${b + 2}::date, $${b + 3}::text, $${b + 4}::text, $${b + 5}::int, $${b + 6}::text, $${b + 7}::float8, $${b + 8}::float8)`
+          : `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7}, $${b + 8})`);
       }
     }
     if (asinRows.length) {
       await query(
         `INSERT INTO search_term_asins
            (marketplace, period_start, search_term, asin, position, title, click_share, conversion_share)
-         VALUES ${asinRows.join(",")}
+         SELECT DISTINCT ON (marketplace, period_start, search_term, asin)
+                marketplace, period_start, search_term, asin, position, title, click_share, conversion_share
+           FROM (VALUES ${asinRows.join(",")})
+             AS v(marketplace, period_start, search_term, asin, position, title, click_share, conversion_share)
+          ORDER BY marketplace, period_start, search_term, asin, position ASC
          ON CONFLICT (marketplace, period_start, search_term, asin)
          DO UPDATE SET position = EXCLUDED.position, title = COALESCE(EXCLUDED.title, search_term_asins.title),
                        click_share = EXCLUDED.click_share, conversion_share = EXCLUDED.conversion_share`,
@@ -298,10 +359,7 @@ export async function importText(
     }
   }
 
-  const note = `Stored ${parsed.rows.length} search terms for the period starting ${periodStart}`
-    + (parsed.skipped ? `, skipped ${parsed.skipped} incomplete rows` : "")
-    + ` (${parsed.shape} format).`;
-  return { rows: parsed.rows.length, note, periodStart, shape: parsed.shape, skipped: parsed.skipped };
+  return rows.length;
 }
 
 /** Amazon states the period in the report specification when it is present. */
@@ -434,3 +492,151 @@ export async function recentJobs(limit = 10): Promise<JobRow[]> {
 }
 
 export { hasEncryptionKey };
+
+/* ------------------------------------------------------------------ *
+ * Clients
+ * ------------------------------------------------------------------ */
+
+export interface ClientRow {
+  id: string;
+  name: string;
+  marketplace: string;
+  notes: string;
+  asins: number;
+}
+
+export interface ClientAsinRow {
+  asin: string;
+  label: string;
+  /** Terms this ASIN is named for, across every stored week. */
+  terms: number;
+  best_rank: number | null;
+}
+
+export async function listClients(): Promise<ClientRow[]> {
+  await ensureSchema();
+  return query<ClientRow>(
+    `SELECT c.id::text, c.name, c.marketplace, c.notes,
+            (SELECT COUNT(*)::int FROM client_asins a WHERE a.client_id = c.id) AS asins
+       FROM clients c ORDER BY lower(c.name)`
+  );
+}
+
+export async function createClient(
+  name: string, marketplace: string, by: string
+): Promise<string> {
+  await ensureSchema();
+  const row = await queryOne<{ id: string }>(
+    `INSERT INTO clients (name, marketplace, created_by) VALUES ($1, $2, $3)
+     ON CONFLICT (lower(name), marketplace) DO UPDATE SET name = EXCLUDED.name
+     RETURNING id::text`,
+    [name.trim().slice(0, 120), marketplace, by]
+  );
+  return row!.id;
+}
+
+export async function deleteClient(id: string): Promise<void> {
+  await ensureSchema();
+  await query(`DELETE FROM clients WHERE id = $1`, [id]);
+}
+
+/**
+ * Adds ASINs to a client, accepting whatever shape they were pasted in —
+ * a column from a spreadsheet, a comma-separated line, a list with titles
+ * beside them. Anything that is not an ASIN is reported rather than dropped
+ * silently, because a mistyped ASIN looks exactly like a product with no data.
+ */
+export async function addAsins(
+  clientId: string, text: string
+): Promise<{ added: number; rejected: string[] }> {
+  await ensureSchema();
+  const tokens = String(text).split(/[\s,;|]+/).map(t => t.trim()).filter(Boolean);
+  const good: string[] = [];
+  const rejected: string[] = [];
+  for (const token of tokens) {
+    const asin = token.toUpperCase();
+    if (/^[A-Z0-9]{10}$/.test(asin)) good.push(asin);
+    else rejected.push(token.slice(0, 40));
+  }
+  if (!good.length) return { added: 0, rejected };
+
+  const values: unknown[] = [];
+  const rows = [...new Set(good)].map((asin, i) => {
+    values.push(clientId, asin);
+    return `($${i * 2 + 1}, $${i * 2 + 2})`;
+  });
+  await query(
+    `INSERT INTO client_asins (client_id, asin) VALUES ${rows.join(",")}
+     ON CONFLICT (client_id, asin) DO NOTHING`,
+    values
+  );
+  return { added: rows.length, rejected };
+}
+
+export async function removeAsin(clientId: string, asin: string): Promise<void> {
+  await ensureSchema();
+  await query(`DELETE FROM client_asins WHERE client_id = $1 AND asin = $2`,
+    [clientId, asin.toUpperCase()]);
+}
+
+/** A client's ASINs, with how much search term data exists for each. */
+export async function clientAsins(clientId: string, marketplace: string): Promise<ClientAsinRow[]> {
+  await ensureSchema();
+  return query<ClientAsinRow>(
+    `SELECT ca.asin, ca.label,
+            COUNT(DISTINCT sa.search_term)::int AS terms,
+            MIN(st.rank)::int AS best_rank
+       FROM client_asins ca
+       LEFT JOIN search_term_asins sa
+         ON sa.asin = ca.asin AND sa.marketplace = $2
+       LEFT JOIN search_terms st
+         ON st.marketplace = sa.marketplace AND st.period_start = sa.period_start
+        AND st.search_term = sa.search_term
+      WHERE ca.client_id = $1
+      GROUP BY ca.asin, ca.label
+      ORDER BY terms DESC, ca.asin`,
+    [clientId, marketplace]
+  );
+}
+
+export interface ClientTermRow {
+  search_term: string;
+  rank: number;
+  asin: string;
+  position: number;
+  click_share: number | null;
+  weeks_held: number;
+}
+
+/**
+ * Every term any of a client's products is named for — the portfolio view.
+ *
+ * One row per term and ASIN, because two of a client's products competing for
+ * the same search is itself worth seeing, not something to collapse away.
+ */
+export async function termsForClient(
+  clientId: string, marketplace: string, limit = 300
+): Promise<ClientTermRow[]> {
+  await ensureSchema();
+  return query<ClientTermRow>(
+    `WITH hits AS (
+       SELECT sa.search_term, sa.asin,
+              COUNT(*)::int AS weeks_held,
+              MAX(sa.period_start) AS latest
+         FROM search_term_asins sa
+         JOIN client_asins ca ON ca.asin = sa.asin AND ca.client_id = $1
+        WHERE sa.marketplace = $2
+        GROUP BY sa.search_term, sa.asin
+     )
+     SELECT h.search_term, t.rank, h.asin, sa.position, sa.click_share, h.weeks_held
+       FROM hits h
+       JOIN search_term_asins sa
+         ON sa.marketplace = $2 AND sa.asin = h.asin
+        AND sa.search_term = h.search_term AND sa.period_start = h.latest
+       JOIN search_terms t
+         ON t.marketplace = $2 AND t.period_start = h.latest AND t.search_term = h.search_term
+      ORDER BY t.rank ASC
+      LIMIT ${Number(limit) || 300}`,
+    [clientId, marketplace]
+  );
+}
