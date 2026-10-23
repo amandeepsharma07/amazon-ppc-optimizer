@@ -353,20 +353,48 @@ export interface AsinTermRow {
   click_share: number | null;
   conversion_share: number | null;
   period_start: string;
+  /** How many of the stored weeks this ASIN was named for the term. */
+  weeks: number;
+  weeks_held: number;
 }
 
-/** Cerebro: the terms this ASIN takes clicks on. */
+/**
+ * Cerebro: the terms this ASIN takes clicks on.
+ *
+ * One row per term, not per term and week. Amazon names only the three most
+ * clicked ASINs for each search, so a product drifts in and out of the report
+ * week to week — and listing the same term once per week would bury the fact
+ * that it is the same term. The count of weeks it held is the more useful
+ * number anyway: appearing in four weeks of four is a position, appearing in
+ * one of four is a visit.
+ *
+ * The figures shown are the most recent week's, since that is what is true now.
+ */
 export async function termsForAsin(
   marketplace: string, asin: string, limit = 200
 ): Promise<AsinTermRow[]> {
   await ensureSchema();
   return query<AsinTermRow>(
-    `SELECT t.search_term, t.rank, a.position, a.click_share, a.conversion_share, t.period_start
-       FROM search_term_asins a
+    `WITH weeks AS (
+       SELECT COUNT(DISTINCT period_start)::int AS n
+         FROM search_terms WHERE marketplace = $1
+     ),
+     hits AS (
+       SELECT a.search_term,
+              COUNT(*)::int AS weeks_held,
+              MAX(a.period_start) AS latest
+         FROM search_term_asins a
+        WHERE a.marketplace = $1 AND a.asin = $2
+        GROUP BY a.search_term
+     )
+     SELECT h.search_term, t.rank, a.position, a.click_share, a.conversion_share,
+            t.period_start, h.weeks_held, (SELECT n FROM weeks) AS weeks
+       FROM hits h
+       JOIN search_term_asins a
+         ON a.marketplace = $1 AND a.asin = $2
+        AND a.search_term = h.search_term AND a.period_start = h.latest
        JOIN search_terms t
-         ON t.marketplace = a.marketplace AND t.period_start = a.period_start
-        AND t.search_term = a.search_term
-      WHERE a.marketplace = $1 AND a.asin = $2
+         ON t.marketplace = $1 AND t.period_start = h.latest AND t.search_term = h.search_term
       ORDER BY t.rank ASC
       LIMIT ${Number(limit) || 200}`,
     [marketplace, asin.trim().toUpperCase()]

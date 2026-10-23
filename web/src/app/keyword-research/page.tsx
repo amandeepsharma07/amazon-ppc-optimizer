@@ -133,15 +133,17 @@ export default async function KeywordResearchPage({
                 ) : (
                   <>
                     <p className="hint">
-                      {forAsin.length} terms. Position is where it sat among the three most-clicked
-                      products for that search — stated by Amazon, not inferred.
+                      {forAsin.length} terms, each listed once with its most recent week&apos;s figures.
+                      Position is where it sat among the three most-clicked products for that search —
+                      stated by Amazon, not inferred. Weeks counts how many of the stored weeks it was
+                      named at all, which separates a position held from a one-week visit.
                     </p>
                     <div className="table-wrap">
                       <table>
                         <thead><tr>
                           <th className="num">Rank</th><th>Search term</th>
                           <th className="num">Position</th><th className="num">Click share</th>
-                          <th className="num">Conversion share</th>
+                          <th className="num">Conversion share</th><th className="num">Weeks</th>
                         </tr></thead>
                         <tbody>
                           {forAsin.map(t => (
@@ -151,6 +153,7 @@ export default async function KeywordResearchPage({
                               <td className="num">#{t.position}</td>
                               <td className="num">{t.click_share === null ? "—" : `${(t.click_share * 100).toFixed(1)}%`}</td>
                               <td className="num">{t.conversion_share === null ? "—" : `${(t.conversion_share * 100).toFixed(1)}%`}</td>
+                              <td className="num">{t.weeks > 1 ? `${t.weeks_held} of ${t.weeks}` : "—"}</td>
                             </tr>
                           ))}
                         </tbody>
