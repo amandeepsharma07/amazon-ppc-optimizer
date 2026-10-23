@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import AppShell from "@/components/AppShell";
 import { coverage, searchTerms, termsForAsin } from "@/lib/research";
+import SearchTermUpload from "@/components/SearchTermUpload";
 
 export const dynamic = "force-dynamic";
 
@@ -42,14 +43,19 @@ export default async function KeywordResearchPage({
     >
       <div className="stack">
         {!held.length ? (
-          <div className="card">
-            <h2 className="section">Nothing pulled yet</h2>
-            <p className="hint" style={{ margin: 0 }}>
-              {user.role === "admin"
-                ? "Connect Selling Partner API on the Amazon connection page and pull the search terms report."
-                : "An admin needs to connect Selling Partner API before this screen has anything to show."}
-            </p>
-          </div>
+          <>
+            <div className="card">
+              <h2 className="section">No search term data yet</h2>
+              <p className="hint" style={{ margin: 0 }}>
+                There are two ways to get it, and they produce exactly the same thing. Upload the
+                Brand Analytics report below whenever you want it — nothing else is needed. Or
+                {user.role === "admin"
+                  ? " connect Selling Partner API on the Amazon connection page, and it arrives every morning on its own."
+                  : " ask an admin to connect Selling Partner API, and it arrives every morning on its own."}
+              </p>
+            </div>
+            <SearchTermUpload defaultMarket={market} />
+          </>
         ) : (
           <>
             <div className="card">
@@ -76,6 +82,13 @@ export default async function KeywordResearchPage({
                   : `No data held for ${market} yet.`}
               </p>
             </div>
+
+            <details className="card upload-fold">
+              <summary>Add another week by hand</summary>
+              <div style={{ marginTop: 14 }}>
+                <SearchTermUpload defaultMarket={market} />
+              </div>
+            </details>
 
             {seed && (
               <div className="card">

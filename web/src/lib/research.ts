@@ -229,13 +229,30 @@ async function importDocument(
   if (!response.ok) throw new Error(`Could not download the report document (${response.status}).`);
   const raw = Buffer.from(await response.arrayBuffer());
   const body = compression === "GZIP" ? gunzipSync(raw).toString("utf8") : raw.toString("utf8");
+  return importText(marketplace, body);
+}
 
+/**
+ * Stores a report, however it arrived.
+ *
+ * The automatic pull and a file somebody downloaded from Seller Central are
+ * the same report in the same shapes, so they take the same path in. Nothing
+ * downstream can tell which produced a row, which is the point: the screens
+ * work identically either way.
+ */
+export async function importText(
+  marketplace: string, body: string, periodOverride?: string
+): Promise<{ rows: number; note: string; periodStart: string; shape: string; skipped: number }> {
   const parsed = parseSearchTermsReport(body);
-  if (!parsed.rows.length) {
-    return { rows: 0, note: parsed.note ?? "The report held no rows this time." };
-  }
+  const periodStart = periodOverride || parsed.periodStart || periodFromBody(body)
+    || new Date().toISOString().slice(0, 10);
 
-  const periodStart = periodFromBody(body) ?? new Date().toISOString().slice(0, 10);
+  if (!parsed.rows.length) {
+    return {
+      rows: 0, periodStart, shape: parsed.shape, skipped: parsed.skipped,
+      note: parsed.note ?? "The file held no search term rows.",
+    };
+  }
 
   // Written in batches: a marketplace week can run to hundreds of thousands of
   // terms, and one statement per row would exhaust the connection budget.
@@ -284,7 +301,7 @@ async function importDocument(
   const note = `Stored ${parsed.rows.length} search terms for the period starting ${periodStart}`
     + (parsed.skipped ? `, skipped ${parsed.skipped} incomplete rows` : "")
     + ` (${parsed.shape} format).`;
-  return { rows: parsed.rows.length, note };
+  return { rows: parsed.rows.length, note, periodStart, shape: parsed.shape, skipped: parsed.skipped };
 }
 
 /** Amazon states the period in the report specification when it is present. */

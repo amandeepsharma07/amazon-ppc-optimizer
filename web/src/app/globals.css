@@ -349,3 +349,17 @@ textarea {
 /* ---- connection settings ---- */
 .notice-bad { border-color: var(--crit); }
 .notice-bad .section { color: var(--crit); }
+
+/* ---- collapsible upload ---- */
+details.upload-fold > summary {
+  cursor: pointer; font-size: 13.5px; font-weight: 600; list-style: none;
+  display: flex; align-items: center; gap: 8px;
+}
+details.upload-fold > summary::-webkit-details-marker { display: none; }
+details.upload-fold > summary::before {
+  content: "›"; color: var(--muted); transition: transform .12s; display: inline-block;
+}
+details.upload-fold[open] > summary::before { transform: rotate(90deg); }
+details.upload-fold > div > .card {
+  border: 0; box-shadow: none; padding: 0; background: transparent;
+}

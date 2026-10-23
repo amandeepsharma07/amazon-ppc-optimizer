@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import {
-  parseSearchTermsReport, relatedTerms, termsForAsin,
+  parseSearchTermsReport, periodFromPreamble, relatedTerms, termsForAsin,
 } from "../src/lib/brand-analytics.ts";
 import {
   MARKETPLACE_IDS, accessToken, explain, forgetTokens, reportDocument,
@@ -255,4 +255,49 @@ test("Cerebro returns the terms an ASIN actually takes clicks on", () => {
   assert.equal(found[0].position, 1);
   assert.equal(found[1].clickShare, 0.21);
   assert.deepEqual(termsForAsin(corpus, "B0NOTHERE99"), []);
+});
+
+/* ---------------- the file a seller downloads by hand ---------------- */
+
+/** What Seller Central's own CSV download looks like: a preamble, then headings. */
+const sellerCentralCsv = [
+  '"Department: Luggage","Reporting Range: Weekly","Viewing Report: 08/03/2026 - 08/09/2026"',
+  '',
+  '"Search Term","Search Frequency Rank","#1 Clicked ASIN","#1 Product Title","#1 Click Share","#1 Conversion Share","#2 Clicked ASIN","#2 Product Title"',
+  '"laptop bag","412","B0AAAA1111","Packster Laptop Backpack","0.21","0.18","B0BBBB2222","Other Bag"',
+  '"school bag","88","B0DDDD4444","A School Bag","0.30","0.22","",""',
+].join("\n");
+
+test("the heading row is found under Seller Central's preamble", () => {
+  const out = parseSearchTermsReport(sellerCentralCsv);
+  assert.equal(out.shape, "delimited");
+  assert.equal(out.rows.length, 2);
+  const laptop = out.rows.find(r => r.searchTerm === "laptop bag")!;
+  assert.equal(laptop.rank, 412);
+  assert.equal(laptop.asins[0].asin, "B0AAAA1111");
+  assert.equal(laptop.asins[0].title, "Packster Laptop Backpack");
+  assert.equal(laptop.asins[1].asin, "B0BBBB2222");
+  // The preamble row must not be read as data.
+  assert.ok(!out.rows.some(r => r.searchTerm.includes("department")));
+});
+
+test("the reporting range in the preamble dates the import", () => {
+  assert.equal(parseSearchTermsReport(sellerCentralCsv).periodStart, "2026-08-03");
+  assert.equal(periodFromPreamble("Viewing Report: 08/03/2026 - 08/09/2026"), "2026-08-03");
+  // Day-first is told apart by a number that cannot be a month.
+  assert.equal(periodFromPreamble("Report: 13/08/2026 - 19/08/2026"), "2026-08-13");
+  assert.equal(periodFromPreamble("Range: 2026-08-03 to 2026-08-09"), "2026-08-03");
+  assert.equal(periodFromPreamble("no dates at all"), null);
+});
+
+test("an empty ASIN column is not stored as a clicked ASIN", () => {
+  const school = parseSearchTermsReport(sellerCentralCsv).rows.find(r => r.searchTerm === "school bag")!;
+  assert.equal(school.asins.length, 1);
+});
+
+test("the wrong report is named as the wrong report", () => {
+  const wrong = ["Date,Impressions,Clicks,Spend", "2026-08-03,120,4,52.10"].join("\n");
+  const out = parseSearchTermsReport(wrong);
+  assert.equal(out.rows.length, 0);
+  assert.match(out.note!, /Top Search Terms/);
 });

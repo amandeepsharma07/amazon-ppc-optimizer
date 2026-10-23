@@ -154,9 +154,25 @@ keywords are calculated benefits every version.
 
 ---
 
-## Part 4 — The Amazon connection
+## Part 4 — Search term data
 
-Set up once, then the search term data arrives on its own.
+There are two ways to get it. They produce exactly the same thing, and the
+research screens cannot tell which was used.
+
+### By hand — nothing to set up
+
+1. Seller Central → **Brands** → **Brand Analytics** → **Amazon Search Terms**
+2. Choose a reporting week and **Download** (CSV or Excel, either works)
+3. In the web app: **Keyword research** → upload the file
+
+The week is read from the file's own reporting range, so there is usually
+nothing to fill in. Uploading the same week again replaces it rather than
+doubling it, so a corrected download is safe to re-upload.
+
+### Automatically — set up once
+
+Connecting Selling Partner API removes that weekly download. It unlocks
+nothing extra; it only means nobody has to remember.
 
 1. **Seller Central** → **Apps & Services** → **Develop Apps**
 2. Create an app, tick the **Brand Analytics** role

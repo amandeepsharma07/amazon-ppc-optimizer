@@ -41,6 +41,31 @@ export interface ParseOutcome {
   shape: "json-per-term" | "json-per-asin" | "delimited" | "unknown";
   skipped: number;
   note?: string;
+  /** Read off the file's own reporting range, when it states one. */
+  periodStart?: string;
+}
+
+/**
+ * The reporting range Seller Central writes above the headings, as
+ * "Viewing Report: 08/03/2026 - 08/09/2026" or with dashes or dots.
+ * Day-first and month-first are told apart by which number exceeds twelve;
+ * when neither does, the US order Seller Central uses is assumed.
+ */
+export function periodFromPreamble(text: string): string | null {
+  const m = text.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);
+  if (m) {
+    const [, a, b, year] = m;
+    const first = parseInt(a, 10);
+    const second = parseInt(b, 10);
+    const dayFirst = first > 12;
+    const month = dayFirst ? second : first;
+    const day = dayFirst ? first : second;
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+  }
+  const iso = text.match(/(\d{4})-(\d{2})-(\d{2})/);
+  return iso ? iso[0] : null;
 }
 
 const num = (value: unknown): number | undefined => {
@@ -66,15 +91,40 @@ function headerIndex(headers: string[], ...patterns: RegExp[]): number {
 function fromDelimited(text: string): ParseOutcome {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (!lines.length) return { rows: [], shape: "unknown", skipped: 0 };
-  const delimiter = lines[0].includes("\t") ? "\t" : ",";
+
+  /* Seller Central's own download puts a preamble above the headings —
+     the department, the reporting range, the dates viewed — so the heading
+     row is found rather than assumed to be first. Taking line one on faith
+     reads a title row as column names and imports nothing. */
+  let headerRow = -1;
+  let delimiter = ",";
+  let headers: string[] = [];
+  let termAt = -1;
+  let rankAt = -1;
+
+  for (let i = 0; i < Math.min(lines.length, 12); i++) {
+    const guess = lines[i].includes("\t") ? "\t" : ",";
+    const cells = lines[i].split(guess).map(c => c.trim().replace(/^"|"$/g, "").toLowerCase());
+    const term = headerIndex(cells, /search\s*term/);
+    const rank = headerIndex(cells, /search\s*frequency\s*rank/, /^rank$/);
+    if (term >= 0 && rank >= 0) {
+      headerRow = i; delimiter = guess; headers = cells; termAt = term; rankAt = rank;
+      break;
+    }
+  }
+
   const split = (line: string) => line.split(delimiter).map(c => c.trim().replace(/^"|"$/g, ""));
 
-  const headers = split(lines[0]).map(h => h.toLowerCase());
-  const termAt = headerIndex(headers, /search\s*term/);
-  const rankAt = headerIndex(headers, /search\s*frequency\s*rank/, /^rank$/);
-  if (termAt < 0 || rankAt < 0) {
-    return { rows: [], shape: "unknown", skipped: lines.length - 1, note: "No search term and rank columns found." };
+  if (headerRow < 0) {
+    return {
+      rows: [], shape: "unknown", skipped: lines.length - 1,
+      note: "No search term and rank columns found. This looks like a different report — "
+        + "the one needed is Brand Analytics → Top Search Terms.",
+    };
   }
+  const periodStart = headerRow > 0
+    ? periodFromPreamble(lines.slice(0, headerRow).join(" ")) ?? undefined
+    : undefined;
   const deptAt = headerIndex(headers, /department/);
 
   // "#1 Clicked ASIN", "#2 Product Title", "#3 Click Share" and so on.
@@ -88,7 +138,7 @@ function fromDelimited(text: string): ParseOutcome {
 
   const rows: SearchTermRecord[] = [];
   let skipped = 0;
-  for (const line of lines.slice(1)) {
+  for (const line of lines.slice(headerRow + 1)) {
     const cells = split(line);
     const searchTerm = (cells[termAt] ?? "").toLowerCase().trim();
     const rank = num(cells[rankAt]);
@@ -108,7 +158,7 @@ function fromDelimited(text: string): ParseOutcome {
     }
     rows.push({ searchTerm, department: deptAt >= 0 ? cells[deptAt] || null : null, rank, asins });
   }
-  return { rows, shape: "delimited", skipped };
+  return { rows, shape: "delimited", skipped, periodStart };
 }
 
 function fromJson(payload: any): ParseOutcome {
